@@ -5,6 +5,10 @@ A fully customizable TV/media remote control card with drag-and-drop grid layout
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-41BDF5.svg)](https://github.com/hacs/integration)
 [![GitHub Release](https://img.shields.io/github/v/release/thecodingdad/grid-remote-card)](https://github.com/thecodingdad/grid-remote-card/releases)
 
+## Screenshot
+
+![Grid Remote Card](screenshots/screenshot.png)
+
 ## Features
 
 - 7 item types: D-Pad, Color Buttons, Slider, Media Info, Button, Source Button, Number Pad, Entity Button
@@ -19,7 +23,7 @@ A fully customizable TV/media remote control card with drag-and-drop grid layout
 
 ## Prerequisites
 
-- Home Assistant 2024.1.0 or newer
+- Home Assistant 2026.3.0 or newer
 - HACS (recommended for installation)
 
 ## Installation
