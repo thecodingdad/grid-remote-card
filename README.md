@@ -2,7 +2,7 @@
 
 A fully customizable TV/media remote control card with drag-and-drop grid layout, multiple button types, source popup, and a visual editor.
 
-[![hacs_badge](https://img.shields.io/badge/HACS-Default-41BDF5.svg)](https://github.com/hacs/integration)
+[![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
 [![GitHub Release](https://img.shields.io/github/v/release/thecodingdad/grid-remote-card)](https://github.com/thecodingdad/grid-remote-card/releases)
 
 ## Screenshot
@@ -30,12 +30,14 @@ A fully customizable TV/media remote control card with drag-and-drop grid layout
 
 ### HACS (Recommended)
 
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=thecodingdad&repository=grid-remote-card&category=plugin)
+
+Or add manually:
 1. Open HACS in your Home Assistant instance
-2. Go to **Frontend**
-3. Click "Explore & Download Repositories"
-4. Search for "Grid Remote Card"
-5. Click "Download"
-6. Reload your browser / clear cache
+2. Click the three dots in the top right corner and select **Custom repositories**
+3. Enter `https://github.com/thecodingdad/grid-remote-card` and select **Dashboard** as the category
+4. Click **Add**, then search for "Grid Remote Card" and download it
+5. Reload your browser / clear cache
 
 ### Manual Installation
 
