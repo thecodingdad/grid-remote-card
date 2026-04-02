@@ -1,0 +1,167 @@
+export default {
+  // Variant labels
+  "Round": "Round",
+  "Pill top": "Pill top",
+  "Pill bottom": "Pill bottom",
+  "Pill left": "Pill left",
+  "Pill right": "Pill right",
+  "Square": "Square",
+  "Rounded": "Rounded",
+
+  // Type labels
+  "D-Pad": "D-Pad",
+  "Color buttons": "Color buttons",
+  "Slider": "Slider",
+  "Media info": "Media info",
+  "Button": "Button",
+  "Source button": "Source button",
+  "Number pad": "Number pad",
+  "Entity button": "Entity button",
+
+  // D-Pad directions
+  "Up": "Up",
+  "Down": "Down",
+  "Left": "Left",
+  "Right": "Right",
+  "OK": "OK",
+
+  // Color button labels
+  "Red": "Red",
+  "Green": "Green",
+  "Yellow": "Yellow",
+  "Blue": "Blue",
+
+  // Orientation
+  "Horizontal": "Horizontal",
+  "Vertical": "Vertical",
+
+  // Editor labels
+  "Color": "Color",
+  "Hide \"-/--\"": "Hide \"-/--\"",
+  "Hide \"Enter\"": "Hide \"Enter\"",
+  "Icon": "Icon",
+  "Text": "Text",
+  "Icon color": "Icon color",
+  "Text color": "Text color",
+  "Background color": "Background color",
+  "Card background color": "Card background color",
+  "Button background color": "Button background color",
+  "Scale": "Scale",
+  "Width": "Width",
+  "Height": "Height",
+  "Tap action": "Tap action",
+  "Double-tap action": "Double-tap action",
+  "Hold action": "Hold action",
+  "On tap": "On tap",
+  "On double-tap": "On double-tap",
+  "On hold": "On hold",
+  "Repeat interval": "Repeat interval",
+  "Repeat on hold": "Repeat on hold",
+  "Column width": "Column width",
+  "Row height": "Row height",
+  "Name": "Name",
+  "Display name": "Display name",
+  "Image URL": "Image URL",
+  "Entity": "Entity",
+  "Source entity": "Source entity",
+  "Variant": "Variant",
+  "Columns": "Columns",
+  "Rows": "Rows",
+  "Orientation": "Orientation",
+  "Attribute": "Attribute",
+  "Minimum": "Minimum",
+  "Maximum": "Maximum",
+  "Step size": "Step size",
+  "Show icon": "Show icon",
+  "Send value while dragging": "Send value while dragging",
+  "Show title/artist": "Show title/artist",
+  "Scroll text": "Scroll text",
+  "Fallback icon": "Fallback icon",
+  "Background when active": "Background when active",
+
+  // Editor helpers
+  "Button color": "Button color",
+  "MDI icon (empty = default icon)": "MDI icon (empty = default icon)",
+  "Text instead of icon (overrides icon)": "Text instead of icon (overrides icon)",
+  "CSS color or variable": "CSS color or variable",
+  "Global background color for all buttons": "Global background color for all buttons",
+  "Card size in percent (default: 100%)": "Card size in percent (default: 100%)",
+  "CSS width value (e.g. fit-content, 100%, 300px). Default: fit-content": "CSS width value (e.g. fit-content, 100%, 300px). Default: fit-content",
+  "CSS height value (e.g. fit-content, 100%, 500px). Default: fit-content": "CSS height value (e.g. fit-content, 100%, 500px). Default: fit-content",
+  "Alternative display name (empty = original name)": "Alternative display name (empty = original name)",
+  "URL to an image (e.g. /local/img.png)": "URL to an image (e.g. /local/img.png)",
+  "Entity for icon/image and default name": "Entity for icon/image and default name",
+  "Button shape": "Button shape",
+  "Select or media player entity for automatic sources": "Select or media player entity for automatic sources",
+  "Repeat interval in ms. Default: 200ms": "Repeat interval in ms. Default: 200ms",
+  "Repeat tap action while finger held": "Repeat tap action while finger held",
+  "Number of columns the element spans": "Number of columns the element spans",
+  "Number of rows the element spans": "Number of rows the element spans",
+  "Number of columns in the grid": "Number of columns in the grid",
+  "Number of rows in the grid": "Number of rows in the grid",
+  "Attribute name (empty = auto from domain)": "Attribute name (empty = auto from domain)",
+  "Minimum value (empty = auto)": "Minimum value (empty = auto)",
+  "Maximum value (empty = auto)": "Maximum value (empty = auto)",
+  "Step size (empty = auto)": "Step size (empty = auto)",
+  "Show icon next to slider": "Show icon next to slider",
+  "Send command while dragging instead of on release": "Send command while dragging instead of on release",
+  "Show title and artist at bottom": "Show title and artist at bottom",
+  "Scroll long text continuously instead of cutting off": "Scroll long text continuously instead of cutting off",
+  "Icon if no cover available (default: mdi:music)": "Icon if no cover available (default: mdi:music)",
+  "Subtly tint background when entity is active": "Subtly tint background when entity is active",
+
+  // Tab labels
+  "Layout": "Layout",
+  "Settings": "Settings",
+
+  // Grid layout
+  "Remove all buttons": "Remove all buttons",
+  "Add:": "Add:",
+
+  // Template / Preset
+  "Template:": "Template:",
+  "Load": "Load",
+  "Cancel": "Cancel",
+  "Load template": "Load template",
+  "\"{label}\" with {entities}? The current layout will be replaced.": "\"{label}\" with {entities}? The current layout will be replaced.",
+  "\"{label}\"? The current layout will be replaced.": "\"{label}\"? The current layout will be replaced.",
+
+  // Page tabs
+  "Page {n}": "Page {n}",
+  "Delete page": "Delete page",
+  "New page": "New page",
+  "Conditions": "Conditions",
+  "(active)": "(active)",
+  "Conditions — Page {n}": "Conditions — Page {n}",
+  "When the condition is met, the card will automatically switch to this page.": "When the condition is met, the card will automatically switch to this page.",
+  "Page {n} still contains buttons. Delete page and all its buttons?": "Page {n} still contains buttons. Delete page and all its buttons?",
+  "Delete": "Delete",
+
+  // Remove all dialog
+  "Confirmation": "Confirmation",
+  "Remove all buttons from page {n}?": "Remove all buttons from page {n}?",
+  "Remove all buttons from layout?": "Remove all buttons from layout?",
+  "Remove": "Remove",
+
+  // Item header
+  "R{row}, C{col}": "R{row}, C{col}",
+
+  // YAML toggle
+  "Show UI editor": "Show UI editor",
+  "Edit as YAML": "Edit as YAML",
+
+  // Collapsible section titles
+  "Size": "Size",
+  "Basis": "Basis",
+  "Actions": "Actions",
+  "Options": "Options",
+  "Button actions": "Button actions",
+  "Slider options": "Slider options",
+  "Source-Popup": "Source-Popup",
+
+  // Settings panel
+  "Appearance": "Appearance",
+  "Haptic & behavior": "Haptic & behavior",
+  "Normal": "Normal",
+  "Stretch": "Stretch",
+};

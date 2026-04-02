@@ -1,0 +1,167 @@
+export default {
+  // Variant labels
+  "Round": "Rund",
+  "Pill top": "Pille oben",
+  "Pill bottom": "Pille unten",
+  "Pill left": "Pille links",
+  "Pill right": "Pille rechts",
+  "Square": "Quadratisch",
+  "Rounded": "Abgerundet",
+
+  // Type labels
+  "D-Pad": "D-Pad",
+  "Color buttons": "Farbtasten",
+  "Slider": "Schieberegler",
+  "Media info": "Medien-Info",
+  "Button": "Taste",
+  "Source button": "Quellen-Taste",
+  "Number pad": "Nummernblock",
+  "Entity button": "Entity-Taste",
+
+  // D-Pad directions
+  "Up": "Hoch",
+  "Down": "Runter",
+  "Left": "Links",
+  "Right": "Rechts",
+  "OK": "OK",
+
+  // Color button labels
+  "Red": "Rot",
+  "Green": "Grün",
+  "Yellow": "Gelb",
+  "Blue": "Blau",
+
+  // Orientation
+  "Horizontal": "Horizontal",
+  "Vertical": "Vertikal",
+
+  // Editor labels
+  "Color": "Farbe",
+  "Hide \"-/--\"": "\"-/--\" ausblenden",
+  "Hide \"Enter\"": "\"Enter\" ausblenden",
+  "Icon": "Symbol",
+  "Text": "Text",
+  "Icon color": "Symbolfarbe",
+  "Text color": "Textfarbe",
+  "Background color": "Hintergrundfarbe",
+  "Card background color": "Karten-Hintergrundfarbe",
+  "Button background color": "Tasten-Hintergrundfarbe",
+  "Scale": "Skalierung",
+  "Width": "Breite",
+  "Height": "Höhe",
+  "Tap action": "Tippen-Aktion",
+  "Double-tap action": "Doppeltippen-Aktion",
+  "Hold action": "Halten-Aktion",
+  "On Tap": "Beim Tippen",
+  "On Double Tap": "Beim Doppeltippen",
+  "On hold": "Beim Halten",
+  "Repeat interval": "Wiederholintervall",
+  "Repeat on hold": "Wiederholen beim Halten",
+  "Column width": "Spaltenbreite",
+  "Row height": "Zeilenhöhe",
+  "Name": "Name",
+  "Display name": "Anzeigename",
+  "Image URL": "Bild-URL",
+  "Entity": "Entität",
+  "Source entity": "Quell-Entität",
+  "Variant": "Variante",
+  "Columns": "Spalten",
+  "Rows": "Zeilen",
+  "Orientation": "Ausrichtung",
+  "Attribute": "Attribut",
+  "Minimum": "Minimum",
+  "Maximum": "Maximum",
+  "Step size": "Schrittgröße",
+  "Show icon": "Symbol anzeigen",
+  "Send value while dragging": "Wert beim Ziehen senden",
+  "Show title/artist": "Titel/Interpret anzeigen",
+  "Scroll text": "Text scrollen",
+  "Fallback icon": "Ersatzsymbol",
+  "Background when active": "Hintergrund wenn aktiv",
+
+  // Editor helpers
+  "Button color": "Tastenfarbe",
+  "MDI icon (empty = default icon)": "MDI-Symbol (leer = Standardsymbol)",
+  "Text instead of icon (overrides icon)": "Text statt Symbol (überschreibt Symbol)",
+  "CSS color or variable": "CSS-Farbe oder Variable",
+  "Global background color for all buttons": "Globale Hintergrundfarbe für alle Tasten",
+  "Card size in percent (default: 100%)": "Kartengröße in Prozent (Standard: 100%)",
+  "CSS width value (e.g. fit-content, 100%, 300px). Default: fit-content": "CSS-Breitenwert (z.B. fit-content, 100%, 300px). Standard: fit-content",
+  "CSS height value (e.g. fit-content, 100%, 500px). Default: fit-content": "CSS-Höhenwert (z.B. fit-content, 100%, 500px). Standard: fit-content",
+  "Alternative display name (empty = original name)": "Alternativer Anzeigename (leer = Originalname)",
+  "URL to an image (e.g. /local/img.png)": "URL zu einem Bild (z.B. /local/img.png)",
+  "Entity for icon/image and default name": "Entität für Symbol/Bild und Standardname",
+  "Button shape": "Tastenform",
+  "Select or media player entity for automatic sources": "Select- oder Mediaplayer-Entität für automatische Quellen",
+  "Repeat interval in ms. Default: 200ms": "Wiederholintervall in ms. Standard: 200ms",
+  "Repeat tap action while finger held": "Tippen-Aktion wiederholen während Finger gehalten wird",
+  "Number of columns the element spans": "Anzahl der Spalten, die das Element überspannt",
+  "Number of rows the element spans": "Anzahl der Zeilen, die das Element überspannt",
+  "Number of columns in the grid": "Anzahl der Spalten im Raster",
+  "Number of rows in the grid": "Anzahl der Zeilen im Raster",
+  "Attribute name (empty = auto from domain)": "Attributname (leer = automatisch aus Domäne)",
+  "Minimum value (empty = auto)": "Minimalwert (leer = automatisch)",
+  "Maximum value (empty = auto)": "Maximalwert (leer = automatisch)",
+  "Step size (empty = auto)": "Schrittgröße (leer = automatisch)",
+  "Show icon next to slider": "Symbol neben Schieberegler anzeigen",
+  "Send command while dragging instead of on release": "Befehl beim Ziehen senden statt beim Loslassen",
+  "Show title and artist at bottom": "Titel und Interpret unten anzeigen",
+  "Scroll long text continuously instead of cutting off": "Langen Text fortlaufend scrollen statt abzuschneiden",
+  "Icon if no cover available (default: mdi:music)": "Symbol wenn kein Cover verfügbar (Standard: mdi:music)",
+  "Subtly tint background when entity is active": "Hintergrund dezent einfärben wenn Entität aktiv",
+
+  // Tab labels
+  "Layout": "Layout",
+  "Settings": "Einstellungen",
+
+  // Grid layout
+  "Remove all buttons": "Alle Tasten entfernen",
+  "Add:": "Hinzufügen:",
+
+  // Template / Preset
+  "Template:": "Vorlage:",
+  "Load": "Laden",
+  "Cancel": "Abbrechen",
+  "Load template": "Vorlage laden",
+  "\"{label}\" with {entities}? The current layout will be replaced.": "\"{label}\" mit {entities}? Das aktuelle Layout wird ersetzt.",
+  "\"{label}\"? The current layout will be replaced.": "\"{label}\"? Das aktuelle Layout wird ersetzt.",
+
+  // Page tabs
+  "Page {n}": "Seite {n}",
+  "Delete page": "Seite löschen",
+  "New page": "Neue Seite",
+  "Conditions": "Bedingungen",
+  "(active)": "(aktiv)",
+  "Conditions — Page {n}": "Bedingungen — Seite {n}",
+  "When the condition is met, the card will automatically switch to this page.": "Wenn die Bedingung erfüllt ist, wechselt die Karte automatisch zu dieser Seite.",
+  "Page {n} still contains buttons. Delete page and all its buttons?": "Seite {n} enthält noch Tasten. Seite und alle Tasten löschen?",
+  "Delete": "Löschen",
+
+  // Remove all dialog
+  "Confirmation": "Bestätigung",
+  "Remove all buttons from page {n}?": "Alle Tasten von Seite {n} entfernen?",
+  "Remove all buttons from layout?": "Alle Tasten aus dem Layout entfernen?",
+  "Remove": "Entfernen",
+
+  // Item header
+  "R{row}, C{col}": "Z{row}, S{col}",
+
+  // YAML toggle
+  "Show UI editor": "UI-Editor anzeigen",
+  "Edit as YAML": "Als YAML bearbeiten",
+
+  // Collapsible section titles
+  "Size": "Größe",
+  "Basis": "Basis",
+  "Actions": "Aktionen",
+  "Options": "Optionen",
+  "Button actions": "Tasten-Aktionen",
+  "Slider options": "Schieberegler-Optionen",
+  "Source-Popup": "Quellen-Popup",
+
+  // Settings panel
+  "Appearance": "Darstellung",
+  "Haptic & behavior": "Haptik & Verhalten",
+  "Normal": "Normal",
+  "Stretch": "Strecken",
+};
