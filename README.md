@@ -16,7 +16,7 @@ A fully customizable TV/media remote control card with drag-and-drop grid layout
 - Configurable grid size and button size
 - Buttons can be arranged with drag-and-drop in visual editor
 - Multiple button designs: round, pill (4 directions), square, rounded
-- Tap, double-tap, and hold action with support with repeat support (configurable intervals)
+- Tap, double-tap, and hold action with repeat support (configurable intervals)
 - Multi-page layout with automatic page switch (configurable conditions per page)
 - Haptic feedback (configurable)
 - Fully configurable colors (global and per button)
