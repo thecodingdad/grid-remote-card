@@ -1,14 +1,14 @@
 /**
  * Grid Remote Card for Home Assistant
  * =============================================
- * v1.0.0
+ * v1.0.1
  *
  * A fully customizable TV remote control card with configurable grid layout,
  * drag-and-drop button placement, multiple button types, source popup,
  * and full visual editor.
  */
 
-const VERSION = '1.0.0';
+const VERSION = '1.0.1';
 
 const { t } = await import(`./i18n/index.js?v=${VERSION}`);
 
