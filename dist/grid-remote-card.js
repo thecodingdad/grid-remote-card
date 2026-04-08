@@ -6,8 +6,6 @@
  * A fully customizable TV remote control card with configurable grid layout,
  * drag-and-drop button placement, multiple button types, source popup,
  * and full visual editor.
- *
- * Based on Minimal Remote Card.
  */
 
 const VERSION = '1.0.0';
@@ -84,26 +82,31 @@ function _getItemSize(item) {
 
 const ITEM_TYPES = Object.keys(ITEM_SIZES);
 
-const BUTTON_VARIANTS = ['round', 'pill_top', 'pill_bottom', 'pill_left', 'pill_right', 'square', 'rounded'];
+const ITEM_VARIANTS = ['round', 'rounded', 'square', 'pill', 'pill_top', 'pill_bottom', 'pill_left', 'pill_right'];
+const BUTTON_VARIANTS = ITEM_VARIANTS;
+const SLIDER_VARIANTS = [...ITEM_VARIANTS, 'classic'];
 
 const VARIANT_LABELS = {
   round:       'Round',
+  rounded:     'Rounded',
+  square:      'Square',
+  pill:        'Pill',
   pill_top:    'Pill top',
   pill_bottom: 'Pill bottom',
   pill_left:   'Pill left',
   pill_right:  'Pill right',
-  square:      'Square',
-  rounded:     'Rounded',
+  classic:     'Classic',
 };
 
 const VARIANT_CSS_CLASS = {
   round:       'round',
+  rounded:     'rounded',
+  square:      'square',
+  pill:        'pill',
   pill_top:    'pill-top',
   pill_bottom: 'pill-bottom',
   pill_left:   'pill-left',
   pill_right:  'pill-right',
-  square:      'square',
-  rounded:     'rounded',
 };
 
 const TYPE_LABELS = {
@@ -215,7 +218,7 @@ const REMOTE_PRESETS = {
     rows: 10,
     items: [
       { type: 'button', row: 0, col: 0, icon: 'mdi:power' },
-      { type: 'numbers', row: 8, col: 1, icon: 'mdi:dialpad', variant: 'round', col_span: 2 },
+      { type: 'numbers', row: 8, col: 1, icon: 'mdi:dialpad', col_span: 2 },
       { type: 'source', row: 0, col: 3, icon: 'mdi:import' },
       { type: 'dpad', row: 1, col: 0, col_span: 4, row_span: 4 },
       { type: 'button', row: 5, col: 0, icon: 'mdi:arrow-u-left-top' },
@@ -837,7 +840,7 @@ class GridRemoteCard extends LitElement {
         const dur = Math.max(5, text.length * 0.3);
         const inner = document.createElement('span');
         inner.textContent = `${text}\u00A0\u00A0\u00A0\u00A0${text}`;
-        inner.style.setProperty('--crc-marquee-duration', `${dur}s`);
+        inner.style.setProperty('--grc-marquee-duration', `${dur}s`);
         el.textContent = '';
         el.appendChild(inner);
       } else if (!overflows && el.classList.contains('marquee')) {
@@ -906,7 +909,7 @@ class GridRemoteCard extends LitElement {
     const iconColor = resolveColor(btnCfg.icon_color || '');
     const textColor = resolveColor(btnCfg.text_color || '');
     return html`
-      <button class="remote-btn color-btn" style="--crc-btn-bg:${color}"
+      <button class="remote-btn color-btn" style="--grc-btn-bg:${color}"
               @pointerdown="${(e) => this._onPointerDown(e, index, key)}"
               @pointerup="${(e) => this._onPointerUp(e, index, key)}"
               @pointermove="${(e) => this._onPointerMove(e)}"
@@ -932,7 +935,7 @@ class GridRemoteCard extends LitElement {
     const textColor = resolveColor(btnCfg.text_color || this._config.text_color || '');
     const isDirectional = extraClass.includes('dpad-cell');
     const bgColor = resolveColor(btnCfg.background_color || (isDirectional ? this._config.button_background_color : '') || '');
-    const style = bgColor ? `--crc-btn-bg:${bgColor}` : '';
+    const style = bgColor ? `--grc-btn-bg:${bgColor}` : '';
     return html`
       <button class="remote-btn ${extraClass}" style="${style}"
               @pointerdown="${(e) => this._onPointerDown(e, index, dir)}"
@@ -957,7 +960,7 @@ class GridRemoteCard extends LitElement {
     const iconColor = resolveColor(item.icon_color || this._config.icon_color || '');
     const textColor = resolveColor(item.text_color || this._config.text_color || '');
     const bgColor = resolveColor(item.background_color || this._config.button_background_color || '');
-    const style = bgColor ? `--crc-btn-bg:${bgColor}` : '';
+    const style = bgColor ? `--grc-btn-bg:${bgColor}` : '';
     return html`
       <button class="remote-btn ${extraClass}" style="${style}"
               @pointerdown="${(e) => this._onPointerDown(e, index, null)}"
@@ -983,7 +986,7 @@ class GridRemoteCard extends LitElement {
     if (!bgColor && item.show_state_background && stateObj && !INACTIVE_STATES.has(stateObj.state)) {
       bgColor = 'color-mix(in srgb, var(--state-active-color, var(--primary-color)) 15%, transparent)';
     }
-    const style = bgColor ? `--crc-btn-bg:${bgColor}` : '';
+    const style = bgColor ? `--grc-btn-bg:${bgColor}` : '';
 
     let content;
     if (item.text) {
@@ -1035,23 +1038,45 @@ class GridRemoteCard extends LitElement {
     const iconColor = resolveColor(item.icon_color || this._config.icon_color || '');
     const disabled = !stateObj || stateObj.state === 'unavailable';
     const showIcon = item.show_icon !== false;
+    const variant = SLIDER_VARIANTS.includes(item.variant) ? item.variant : 'pill';
+    const vertical = item.orientation === 'vertical';
 
     let currentValue = 0;
     if (stateObj) {
       currentValue = attribute ? parseFloat(stateObj.attributes?.[attribute] ?? 0) : parseFloat(stateObj.state ?? 0);
     }
     if (isNaN(currentValue)) currentValue = min;
+    const fillPct = max > min ? Math.max(0, Math.min(100, (currentValue - min) / (max - min) * 100)) : 0;
+
+    const rangeInput = html`
+      <input type="range" class="slider-range" .min="${min}" .max="${max}" .step="${step}"
+             .value="${currentValue}" ?disabled="${disabled}"
+             @input="${(e) => this._onSliderInput(e, index)}"
+             @change="${(e) => this._onSliderChange(e, index)}"
+             @pointerdown="${(e) => this._onSliderStart(e, index)}"
+             @pointerup="${() => this._onSliderEnd(index)}"
+             @pointercancel="${() => this._onSliderEnd(index)}">
+    `;
+
+    if (variant !== 'classic') {
+      const variantClass = VARIANT_CSS_CLASS[variant] || variant;
+      return html`
+        <div class="slider-item ${variantClass} ${disabled ? 'disabled' : ''} ${vertical ? 'vertical' : ''}"
+             style="--slider-fill:${fillPct}%">
+          <div class="pill-track">
+            <div class="pill-fill"></div>
+            ${showIcon ? html`<ha-icon class="pill-icon" .icon="${icon}" style="${iconColor ? `color:${iconColor}` : ''}"></ha-icon>` : ''}
+          </div>
+          ${rangeInput}
+          <span class="slider-popup" id="slider-popup-${index}"></span>
+        </div>
+      `;
+    }
 
     return html`
-      <div class="slider-item ${disabled ? 'disabled' : ''} ${item.orientation === 'vertical' ? 'vertical' : ''}">
+      <div class="slider-item classic ${disabled ? 'disabled' : ''} ${vertical ? 'vertical' : ''}">
         ${showIcon ? html`<ha-icon .icon="${icon}" style="${iconColor ? `color:${iconColor}` : ''}"></ha-icon>` : ''}
-        <input type="range" .min="${min}" .max="${max}" .step="${step}"
-               .value="${currentValue}" ?disabled="${disabled}"
-               @input="${(e) => this._onSliderInput(e, index)}"
-               @change="${(e) => this._onSliderChange(e, index)}"
-               @pointerdown="${(e) => this._onSliderStart(e, index)}"
-               @pointerup="${() => this._onSliderEnd(index)}"
-               @pointercancel="${() => this._onSliderEnd(index)}">
+        ${rangeInput}
         <span class="slider-popup" id="slider-popup-${index}"></span>
       </div>
     `;
@@ -1088,6 +1113,17 @@ class GridRemoteCard extends LitElement {
     popup.style.left = `${thumbX - popup.offsetWidth / 2}px`;
   }
 
+  _updateSliderFill(input) {
+    const host = input?.closest?.('.slider-item:not(.classic)');
+    if (!host) return;
+    const min = parseFloat(input.min);
+    const max = parseFloat(input.max);
+    const val = parseFloat(input.value);
+    if (!(max > min)) return;
+    const pct = Math.max(0, Math.min(100, (val - min) / (max - min) * 100));
+    host.style.setProperty('--slider-fill', `${pct}%`);
+  }
+
   _onSliderStart(e, index) {
     this._sliderActive = index;
     const popup = this.shadowRoot?.getElementById(`slider-popup-${index}`);
@@ -1104,6 +1140,7 @@ class GridRemoteCard extends LitElement {
   _onSliderInput(e, index) {
     const item = this._items[index];
     if (!item?.entity_id || !this.hass) return;
+    this._updateSliderFill(e.target);
     this._updateSliderPopup(index, e.target);
     if (item.slider_live) {
       clearTimeout(this._sliderDebounce);
@@ -1477,7 +1514,7 @@ class GridRemoteCard extends LitElement {
         top = (anchorRect.top - containerRect.top) / scale - menuRect.height / scale - 8;
         if (top < 0) top = 0;
       }
-      menu.style.setProperty('--crc-popup-top', `${top}px`);
+      menu.style.setProperty('--grc-popup-top', `${top}px`);
       menu.style.top = `${top}px`;
       let left = (anchorRect.left + anchorRect.width / 2 - containerRect.left) / scale - menuRect.width / scale / 2;
       left = Math.max(0, Math.min(left, containerRect.width / scale - menuRect.width / scale));
@@ -1625,6 +1662,12 @@ class GridRemoteCard extends LitElement {
         --grid-cell-height: 50px;
         --grid-gap: 10px;
         --remote-padding: 15px;
+        --grc-item-bg:        color-mix(in srgb, var(--primary-text-color) 8%, transparent);
+        --grc-item-bg-hover:  color-mix(in srgb, var(--primary-text-color) 14%, transparent);
+        --grc-item-bg-active: color-mix(in srgb, var(--primary-text-color) 20%, transparent);
+        --grc-item-icon:      var(--primary-text-color);
+        --grc-item-press-filter: brightness(0.85);
+        --grc-dpad-center-size: 64px;
         display: flex;
         justify-content: center;
         align-items: center;
@@ -1677,56 +1720,57 @@ class GridRemoteCard extends LitElement {
         overflow: hidden;
       }
 
-      .dpad-cell {
-        all: unset !important;
-        box-sizing: border-box !important;
-        cursor: pointer !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        position: relative !important;
-        overflow: hidden !important;
-        width: auto !important;
-        height: auto !important;
-        border-radius: 0 !important;
-        margin: 0 !important;
-        background: var(--crc-btn-bg, color-mix(in srgb, var(--primary-text-color) 8%, transparent)) !important;
-        border: 1px solid color-mix(in srgb, var(--primary-text-color) 5%, transparent) !important;
-        -webkit-tap-highlight-color: transparent;
+      .remote-btn.dpad-cell {
+        width: auto;
+        height: auto;
+        margin: 0;
+        border-radius: 0;
       }
-      .dpad-cell:hover {
-        background: color-mix(in srgb, var(--primary-text-color) 14%, transparent) !important;
-      }
-      .dpad-cell:active {
-        filter: brightness(0.85) !important;
-      }
-
-      .dpad-cell ha-icon {
-        transform: rotate(-45deg);
-        --mdc-icon-size: 25px;
-        color: var(--primary-text-color);
-        z-index: 1;
-      }
-      .dpad-cell .btn-text {
-        transform: rotate(-45deg);
-        z-index: 1;
+      /* Separator lines between dpad cells drawn as two linear gradients
+         on an overlay. Because .dpad-grid is rotated 45deg, a horizontal
+         and a vertical line together form the visual X across the ring.
+         A radial mask fades the lines out before they reach the center
+         button, avoiding the ugly border-meets-center artifact. */
+      .dpad-grid::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background:
+          linear-gradient(to right,
+            transparent calc(50% - 0.5px),
+            color-mix(in srgb, var(--primary-text-color) 8%, transparent) calc(50% - 0.5px),
+            color-mix(in srgb, var(--primary-text-color) 8%, transparent) calc(50% + 0.5px),
+            transparent calc(50% + 0.5px)),
+          linear-gradient(to bottom,
+            transparent calc(50% - 0.5px),
+            color-mix(in srgb, var(--primary-text-color) 8%, transparent) calc(50% - 0.5px),
+            color-mix(in srgb, var(--primary-text-color) 8%, transparent) calc(50% + 0.5px),
+            transparent calc(50% + 0.5px));
+        -webkit-mask: radial-gradient(circle at center, transparent calc(var(--grc-dpad-center-size) / 2), black calc(var(--grc-dpad-center-size) / 2));
+                mask: radial-gradient(circle at center, transparent calc(var(--grc-dpad-center-size) / 2), black calc(var(--grc-dpad-center-size) / 2));
       }
 
-      .center-btn {
-        position: absolute !important;
-        top: 50% !important;
-        left: 50% !important;
-        transform: translate(-50%, -50%) !important;
-        width: 64px !important;
-        height: 64px !important;
-        border-radius: 50% !important;
-        z-index: 3 !important;
-        background: var(--crc-btn-bg, var(--card-background-color, var(--ha-card-background, #1c1c1c))) !important;
-        border: 2px solid color-mix(in srgb, var(--primary-text-color) 12%, transparent) !important;
+      .remote-btn.dpad-cell ha-icon {
+        transform: rotate(-45deg);
+      }
+      .remote-btn.dpad-cell .btn-text {
+        transform: rotate(-45deg);
+        z-index: 1;
+      }
+
+      .remote-btn.center-btn {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: var(--grc-dpad-center-size);
+        height: var(--grc-dpad-center-size);
+        border-radius: 50%;
+        z-index: 3;
+        background: var(--grc-btn-bg, var(--card-background-color, var(--ha-card-background, #1c1c1c)));
+        border: 2px solid color-mix(in srgb, var(--primary-text-color) 12%, transparent);
         box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-      }
-      .center-btn:hover {
-        background: color-mix(in srgb, var(--primary-text-color) 14%, transparent) !important;
       }
 
       /* Color buttons */
@@ -1749,11 +1793,11 @@ class GridRemoteCard extends LitElement {
         border-radius: 6px !important;
         margin: 0 !important;
       }
-      .color-btn:hover {
-        background: color-mix(in srgb, var(--crc-btn-bg) 80%, white) !important;
+      .remote-btn.color-btn:hover {
+        background: color-mix(in srgb, var(--grc-btn-bg) 80%, white);
       }
-      .color-btn:active {
-        filter: brightness(0.85) !important;
+      .remote-btn.color-btn:active {
+        filter: var(--grc-item-press-filter);
       }
 
       /* Slider */
@@ -1769,10 +1813,10 @@ class GridRemoteCard extends LitElement {
       }
       .slider-item ha-icon {
         --mdc-icon-size: 20px;
-        color: var(--primary-text-color);
+        color: var(--grc-item-icon);
         flex-shrink: 0;
       }
-      .slider-item input[type=range] {
+      .slider-item.classic input[type=range] {
         flex: 1;
         min-width: 0;
         height: 4px;
@@ -1809,7 +1853,7 @@ class GridRemoteCard extends LitElement {
       .slider-item.vertical {
         flex-direction: column;
       }
-      .slider-item.vertical input[type=range] {
+      .slider-item.classic.vertical input[type=range] {
         writing-mode: vertical-lr;
         direction: rtl;
         flex: 1;
@@ -1823,6 +1867,67 @@ class GridRemoteCard extends LitElement {
         bottom: 50%;
       }
 
+      /* Track-based slider variants (pill, rounded, square) */
+      .slider-item:not(.classic) {
+        gap: 0;
+        padding: 0;
+      }
+      .slider-item:not(.classic) .pill-track {
+        position: absolute;
+        inset: 0;
+        background: var(--grc-item-bg);
+        overflow: hidden;
+        border-radius: var(--grc-variant-radius, 9999px);
+      }
+      .slider-item:not(.classic) .pill-fill {
+        position: absolute;
+        background: color-mix(in srgb, var(--primary-text-color) 28%, transparent);
+        transition: width 0.08s linear, height 0.08s linear;
+      }
+      /* Horizontal: fill grows from left */
+      .slider-item:not(.classic):not(.vertical) .pill-fill {
+        left: 0; top: 0; bottom: 0;
+        width: var(--slider-fill, 0%);
+      }
+      /* Vertical: fill grows from bottom */
+      .slider-item:not(.classic).vertical .pill-fill {
+        left: 0; right: 0; bottom: 0;
+        height: var(--slider-fill, 0%);
+      }
+      .slider-item:not(.classic) .pill-icon {
+        position: absolute;
+        --mdc-icon-size: 22px;
+        color: var(--grc-item-icon);
+        pointer-events: none;
+        z-index: 1;
+      }
+      .slider-item:not(.classic):not(.vertical) .pill-icon {
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+      }
+      .slider-item:not(.classic).vertical .pill-icon {
+        bottom: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+      }
+      .slider-item:not(.classic) .slider-range {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        background: transparent;
+        opacity: 0;
+        cursor: pointer;
+        z-index: 2;
+      }
+      .slider-item:not(.classic).vertical .slider-range {
+        writing-mode: vertical-lr;
+        direction: rtl;
+      }
+
       /* Media tile */
       .media-wrapper { width: 100%; height: 100%; }
       .media-tile {
@@ -1832,7 +1937,7 @@ class GridRemoteCard extends LitElement {
         border-radius: 12px;
         overflow: hidden;
         cursor: pointer;
-        background: color-mix(in srgb, var(--primary-text-color) 8%, transparent);
+        background: var(--grc-item-bg);
         -webkit-tap-highlight-color: transparent;
       }
       .media-tile:hover { filter: brightness(1.1); }
@@ -1892,7 +1997,7 @@ class GridRemoteCard extends LitElement {
       .media-title.marquee span, .media-artist.marquee span {
         display: inline-block;
         padding-right: 2em;
-        animation: crc-marquee var(--crc-marquee-duration, 10s) linear infinite;
+        animation: crc-marquee var(--grc-marquee-duration, 10s) linear infinite;
       }
       @keyframes crc-marquee {
         0% { transform: translateX(0); }
@@ -1908,10 +2013,10 @@ class GridRemoteCard extends LitElement {
         justify-content: center;
         position: relative;
         overflow: hidden;
-        width: var(--grid-cell-width);
-        height: var(--grid-cell-height);
-        border-radius: 50%;
-        background: var(--crc-btn-bg, color-mix(in srgb, var(--primary-text-color) 8%, transparent));
+        width: 100%;
+        height: 100%;
+        border-radius: var(--grc-variant-radius, 50%);
+        background: var(--grc-btn-bg, var(--grc-item-bg));
         -webkit-tap-highlight-color: transparent;
         margin: 0 auto;
       }
@@ -1923,7 +2028,7 @@ class GridRemoteCard extends LitElement {
 
       .remote-btn ha-icon {
         --mdc-icon-size: 25px;
-        color: var(--primary-text-color);
+        color: var(--grc-item-icon);
         position: relative;
         z-index: 1;
       }
@@ -1946,13 +2051,16 @@ class GridRemoteCard extends LitElement {
         z-index: 1;
       }
 
-      .pill-top, .multi-span.pill-top { border-radius: 25px 25px 4px 4px; }
-      .pill-bottom, .multi-span.pill-bottom { border-radius: 4px 4px 25px 25px; }
-      .pill-left, .multi-span.pill-left { border-radius: 25px 4px 4px 25px; }
-      .pill-right, .multi-span.pill-right { border-radius: 4px 25px 25px 4px; }
-      .square, .multi-span.square { border-radius: 4px; }
-      .rounded, .multi-span.rounded { border-radius: 12px; }
-      .round, .multi-span.round { border-radius: 25px; }
+      /* Shared variant radius tokens — consumed by .remote-btn and
+         .slider-item:not(.classic) .pill-track via --grc-variant-radius. */
+      .round       { --grc-variant-radius: 100%; }
+      .rounded     { --grc-variant-radius: 12px; }
+      .square      { --grc-variant-radius: 4px; }
+      .pill        { --grc-variant-radius: 9999px; }
+      .pill-top    { --grc-variant-radius: 9999px 9999px 4px 4px; }
+      .pill-bottom { --grc-variant-radius: 4px 4px 9999px 9999px; }
+      .pill-left   { --grc-variant-radius: 9999px 4px 4px 9999px; }
+      .pill-right  { --grc-variant-radius: 4px 9999px 9999px 4px; }
 
       /* Ripple */
       .ripple-container {
@@ -1978,9 +2086,9 @@ class GridRemoteCard extends LitElement {
 
       /* Hover & active */
       .remote-btn:hover {
-        background: color-mix(in srgb, var(--primary-text-color) 14%, transparent);
+        background: var(--grc-item-bg-hover);
       }
-      .remote-btn:active { filter: brightness(0.85); }
+      .remote-btn:active { filter: var(--grc-item-press-filter); }
 
       /* Popup */
       .popup-overlay {
@@ -2001,7 +2109,7 @@ class GridRemoteCard extends LitElement {
         padding: 8px 0;
         min-width: 140px;
         max-width: 100%;
-        max-height: calc(100% - var(--crc-popup-top, 0px) - 8px);
+        max-height: calc(100% - var(--grc-popup-top, 0px) - 8px);
         overflow-x: hidden;
         overflow-y: auto;
         animation: crc-popup-in 0.15s ease-out;
@@ -2087,8 +2195,8 @@ class GridRemoteCard extends LitElement {
         width: 48px;
         height: 40px;
         border-radius: 8px;
-        background: color-mix(in srgb, var(--primary-text-color) 8%, transparent);
-        color: var(--primary-text-color);
+        background: var(--grc-item-bg);
+        color: var(--grc-item-icon);
         font-size: 18px;
         font-weight: 500;
         font-family: var(--mdc-typography-font-family, Roboto, sans-serif);
@@ -2098,10 +2206,10 @@ class GridRemoteCard extends LitElement {
         overflow: hidden;
       }
       .numpad-btn:hover {
-        background: color-mix(in srgb, var(--primary-text-color) 14%, transparent);
+        background: var(--grc-item-bg-hover);
       }
       .numpad-btn:active {
-        background: color-mix(in srgb, var(--primary-text-color) 20%, transparent);
+        background: var(--grc-item-bg-active);
       }
       .numpad-dash, .numpad-enter {
         font-size: 14px;
@@ -2252,6 +2360,7 @@ const SCHEMA_NUMPAD_OPTIONS = [
 ];
 
 const SCHEMA_SLIDER_OPTIONS = [
+  { name: 'variant', selector: { select: { options: SLIDER_VARIANTS.map(v => ({ value: v, label: VARIANT_LABELS[v] })), mode: 'dropdown' } } },
   { name: 'orientation', selector: { select: { options: [
     { value: 'horizontal', label: 'Horizontal' },
     { value: 'vertical', label: 'Vertical' },
@@ -3577,10 +3686,18 @@ class GridRemoteCardEditor extends LitElement {
     const page = item.page || 0;
     if (!this._canPlaceAt(items, index, testSize, item.row, item.col, cols, rows, undefined, page)) return;
 
-    if (colSpan !== base.cols) item.col_span = colSpan;
-    else delete item.col_span;
-    if (rowSpan !== base.rows) item.row_span = rowSpan;
-    else delete item.row_span;
+    // Slider vertical has an asymmetric default: row_span falls back to
+    // base.cols (3) in _getItemSize, so compare against that for the delete.
+    if (item.type === 'slider' && item.orientation === 'vertical') {
+      delete item.col_span;
+      if (rowSpan !== base.cols) item.row_span = rowSpan;
+      else delete item.row_span;
+    } else {
+      if (colSpan !== base.cols) item.col_span = colSpan;
+      else delete item.col_span;
+      if (rowSpan !== base.rows) item.row_span = rowSpan;
+      else delete item.row_span;
+    }
 
     items[index] = item;
     this._config = { ...this._config, items };
@@ -4371,7 +4488,7 @@ class GridRemoteCardEditor extends LitElement {
       background_color: item.background_color ?? '',
     };
     const variantEditor = html`
-      <ha-form .hass=${this.hass} .data=${{ variant: item.variant || 'round' }}
+      <ha-form .hass=${this.hass} .data=${{ variant: item.variant || 'pill' }}
         .schema=${SCHEMA_VARIANT.map(s => s.name === 'variant' ? { ...s, selector: { select: { ...s.selector.select, options: s.selector.select.options.map(o => ({ ...o, label: t(this.hass, o.label) })) } } } : s)}
         .computeLabel=${(s) => _label(this.hass, s)} .computeHelper=${(s) => _helper(this.hass, s)}
         @value-changed=${(e) => this._onItemVariantChanged(e, index)}
@@ -4450,7 +4567,7 @@ class GridRemoteCardEditor extends LitElement {
     };
     const hasVariant = item.type === 'button' || item.type === 'source' || item.type === 'entity';
     const variantEditor = hasVariant ? html`
-      <ha-form .hass=${this.hass} .data=${{ variant: item.variant || 'round' }}
+      <ha-form .hass=${this.hass} .data=${{ variant: item.variant || 'pill' }}
         .schema=${SCHEMA_VARIANT.map(s => s.name === 'variant' ? { ...s, selector: { select: { ...s.selector.select, options: s.selector.select.options.map(o => ({ ...o, label: t(this.hass, o.label) })) } } } : s)}
         .computeLabel=${(s) => _label(this.hass, s)} .computeHelper=${(s) => _helper(this.hass, s)}
         @value-changed=${(e) => this._onItemVariantChanged(e, index)}
@@ -4543,6 +4660,7 @@ class GridRemoteCardEditor extends LitElement {
       icon_color: item.icon_color ?? '',
     };
     const sliderData = {
+      variant: item.variant || 'pill',
       orientation: item.orientation || 'horizontal',
       attribute: item.attribute ?? '', min: item.min ?? '', max: item.max ?? '', step: item.step ?? '',
       show_icon: item.show_icon !== false, slider_live: item.slider_live ?? false,
@@ -4563,7 +4681,7 @@ class GridRemoteCardEditor extends LitElement {
         ></ha-form>
       `)}
       ${this._renderCollapsible(`item-${index}-slider-opts`, t(this.hass, 'Slider options'), false, html`
-        <ha-form .hass=${this.hass} .data=${sliderData} .schema=${SCHEMA_SLIDER_OPTIONS.map(s => s.name === 'orientation' ? { ...s, selector: { select: { ...s.selector.select, options: s.selector.select.options.map(o => ({ ...o, label: t(this.hass, o.label) })) } } } : s)}
+        <ha-form .hass=${this.hass} .data=${sliderData} .schema=${SCHEMA_SLIDER_OPTIONS.map(s => (s.name === 'orientation' || s.name === 'variant') ? { ...s, selector: { select: { ...s.selector.select, options: s.selector.select.options.map(o => ({ ...o, label: t(this.hass, o.label) })) } } } : s)}
           .computeLabel=${(s) => _label(this.hass, s)} .computeHelper=${(s) => _helper(this.hass, s)}
           @value-changed=${(e) => this._onSliderOptionsChanged(e, index)}
         ></ha-form>
@@ -4864,7 +4982,7 @@ class GridRemoteCardEditor extends LitElement {
     e.stopPropagation();
     const val = e.detail.value.variant;
     const items = [...this._items];
-    items[index] = { ...items[index], variant: val || 'round' };
+    items[index] = { ...items[index], variant: val || 'pill' };
     this._config = { ...this._config, items };
     this._fireConfigChanged();
   }
@@ -4978,6 +5096,8 @@ class GridRemoteCardEditor extends LitElement {
     const val = e.detail.value;
     const items = [...this._items];
     const item = { ...items[index] };
+    if (val.variant && val.variant !== 'pill') item.variant = val.variant;
+    else delete item.variant;
     if (val.orientation === 'vertical') item.orientation = 'vertical';
     else delete item.orientation;
     for (const key of ['attribute', 'min', 'max', 'step']) {

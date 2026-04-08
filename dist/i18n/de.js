@@ -7,6 +7,8 @@ export default {
   "Pill right": "Pille rechts",
   "Square": "Quadratisch",
   "Rounded": "Abgerundet",
+  "Pill": "Pille",
+  "Classic": "Klassisch",
 
   // Type labels
   "D-Pad": "D-Pad",

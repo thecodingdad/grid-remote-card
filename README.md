@@ -15,7 +15,7 @@ A fully customizable TV/media remote control card with drag-and-drop grid layout
 - Multiple button types: D-Pad, Color Buttons, Slider, Media Info, Button, Source Button, Number Pad, Entity Button
 - Configurable grid size and button size
 - Buttons can be arranged with drag-and-drop in visual editor
-- Multiple button designs: round, pill (4 directions), square, rounded
+- Multiple button and slider designs: round, rounded, square, pill, pill (4 directions)
 - Tap, double-tap, and hold action with repeat support (configurable intervals)
 - Multi-page layout with automatic page switch (configurable conditions per page)
 - Haptic feedback (configurable)
@@ -65,7 +65,7 @@ items:
       data:
         command: power
   - type: dpad
-    size: 3x3
+    col_span: 3
   - type: slider
     entity: media_player.tv
 ```
@@ -120,7 +120,7 @@ All item types support:
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `variant` | string | `round` | Button shape: `round`, `pill_top`, `pill_bottom`, `pill_left`, `pill_right`, `square`, `rounded` |
+| `variant` | string | `round` | Button shape: `round`, `rounded`, `square`, `pill`, `pill_top`, `pill_bottom`, `pill_left`, `pill_right` |
 | `icon` | string | `mdi:radiobox-blank` | MDI icon |
 | `text` | string | — | Text label (replaces icon) |
 | `icon_color` | string | — | Icon color (CSS) |
@@ -146,6 +146,7 @@ Each direction in `buttons` supports: `icon`, `text`, `icon_color`, `text_color`
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `entity_id` | string | required | Entity to control |
+| `variant` | string | `pill` | Slider shape: `round`, `rounded`, `square`, `pill`, `pill_top`, `pill_bottom`, `pill_left`, `pill_right`, `classic` (native range input) |
 | `orientation` | string | `horizontal` | `horizontal` or `vertical` |
 | `col_span` | number | 3 | Width for horizontal slider |
 | `row_span` | number | 3 | Height for vertical slider |
