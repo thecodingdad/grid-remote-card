@@ -145,15 +145,25 @@ export class GridRemoteCard extends LitElement {
     const rows = this._config?.rows || 1;
     const cols = this._config?.columns || 1;
     const scale = (this._config?.scale || 100) / 100;
-    const neededCols = Math.ceil(cols * 2 * scale);
 
     const style = getComputedStyle(this);
+    const cellW = parseInt(style.getPropertyValue('--grid-cell-width')) || 50;
     const cellH = parseInt(style.getPropertyValue('--grid-cell-height')) || 50;
     const gap = parseInt(style.getPropertyValue('--grid-gap')) || 10;
     const padding = parseInt(style.getPropertyValue('--remote-padding')) || 15;
+    const border = parseInt(style.getPropertyValue('--ha-card-border-width')) || 1;
     const multiPage = this._pageCount > 1;
     const dotsHeight = multiPage ? 28 : 0;
+
+    const cardWidth = (cols * cellW + (cols - 1) * gap + 2 * padding + 2 * border) * scale;
     const remoteHeight = (rows * cellH + (rows - 1) * gap + 2 * padding + dotsHeight) * scale;
+
+    // Section grid: 12 columns per section, gap and max-width from CSS vars
+    const SEC_COLS = 12;
+    const colGap = parseInt(style.getPropertyValue('--column-gap')) || 8;
+    const colMaxWidth = parseInt(style.getPropertyValue('--column-max-width')) || 500;
+    const secColWidth = (colMaxWidth - (SEC_COLS - 1) * colGap) / SEC_COLS;
+    const neededCols = Math.ceil((cardWidth + colGap) / (secColWidth + colGap));
 
     const rowHeight = parseInt(style.getPropertyValue('--row-height')) || 56;
     const rowGap = parseInt(style.getPropertyValue('--row-gap')) || 8;
