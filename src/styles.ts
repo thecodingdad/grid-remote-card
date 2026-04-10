@@ -77,7 +77,6 @@ export const cardStyles = css`
     box-shadow: 0 4px 16px rgba(0,0,0,0.22);
     padding: 8px 0;
     min-width: 140px;
-    max-width: 100%;
     max-height: calc(100% - var(--grc-popup-top, 0px) - 8px);
     overflow-x: hidden;
     overflow-y: auto;

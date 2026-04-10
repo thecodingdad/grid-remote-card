@@ -138,8 +138,15 @@ export function openNumpadPopup(card: GridRemoteCard, itemIndex: number, anchorE
       menu.style.top = `${(anchorRect.top - containerRect.top) / scale - menuRect.height / scale - 8}px`;
     }
 
-    let left = (anchorRect.left + anchorRect.width / 2 - containerRect.left) / scale - menuRect.width / scale / 2;
-    left = Math.max(0, Math.min(left, containerRect.width / scale - menuRect.width / scale));
+    const cw = containerRect.width / scale;
+    const mw = menuRect.width / scale;
+    let left: number;
+    if (mw > cw) {
+      left = (cw - mw) / 2;
+    } else {
+      left = (anchorRect.left + anchorRect.width / 2 - containerRect.left) / scale - mw / 2;
+      left = Math.max(0, Math.min(left, cw - mw));
+    }
     menu.style.left = `${left}px`;
   });
 }
