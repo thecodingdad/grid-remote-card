@@ -174,6 +174,22 @@ Supports all [Button Options](#button-options), plus:
 
 This card supports English and German.
 
+## Development
+
+The card is written in TypeScript and bundled with esbuild.
+
+Requires Node 20+.
+
+```bash
+npm install       # Once, sets up tooling
+npm run dev       # Watch mode (~50ms rebuilds)
+npm run build     # Production build → dist/grid-remote-card.js
+npm run typecheck # TypeScript check without emit
+```
+
+Source lives in `src/`, output is committed to `dist/` for HACS consumers.
+Edit files under `src/` and run `npm run build`.
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

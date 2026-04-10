@@ -166,4 +166,15 @@ export default {
   "Haptic & behavior": "Haptik & Verhalten",
   "Normal": "Normal",
   "Stretch": "Strecken",
+
+  // Source popup / source entity editor
+  "No sources configured": "Keine Quellen konfiguriert",
+  "Add source": "Quelle hinzufügen",
+  "Source {n}": "Quelle {n}",
+  "{n} sources loaded from entity.": "{n} Quellen aus Entität geladen.",
+  "Changes to automatic sources are saved as overrides.": "Änderungen an automatischen Quellen werden als Überschreibungen gespeichert.",
+  "Show": "Anzeigen",
+  "Hide": "Ausblenden",
+  "Edit": "Bearbeiten",
+  "Remove override": "Überschreibung entfernen",
 };

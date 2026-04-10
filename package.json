@@ -1,0 +1,20 @@
+{
+  "name": "grid-remote-card",
+  "version": "1.1.0",
+  "description": "A fully customizable TV/media remote control card with drag-and-drop grid layout for Home Assistant",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "dev": "node scripts/build.mjs --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@literals/html-css-minifier": "^4.0.1",
+    "custom-card-helpers": "^1.9.0",
+    "esbuild": "^0.24.0",
+    "home-assistant-js-websocket": "^9.4.0",
+    "lit": "^3.2.0",
+    "typescript": "^5.6.0"
+  }
+}
