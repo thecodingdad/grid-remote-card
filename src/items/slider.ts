@@ -41,6 +41,8 @@ export class SliderItem extends ItemBase {
   static override readonly editorIcon = 'mdi:tune-variant';
   static override readonly defaultSize = { cols: 3, rows: 1 };
 
+  static override applyPresetEntity(item: Item, entityId: string): void { item.entity_id = entityId; }
+
   /** Vertical sliders are 1 col wide and multiple rows tall; horizontal
    *  sliders are multiple cols wide and 1 row tall. */
   static override getSize(item: Item): ItemSize {

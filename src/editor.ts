@@ -438,11 +438,16 @@ export class GridRemoteCardEditor extends LitElement {
       row++;
     }
 
-    // Volume Row(s): Vol+/Vol- as pills (col 1), Mute (col 0) on Vol- row
-    const hasVolume = has(MP_FEATURE.VOLUME_STEP) || has(MP_FEATURE.VOLUME_SET);
+    // Volume: slider if VOLUME_SET supported, otherwise Vol+/Vol- pill buttons
+    const hasVolumeSet = has(MP_FEATURE.VOLUME_SET);
+    const hasVolumeStep = has(MP_FEATURE.VOLUME_STEP);
     const hasMute = has(MP_FEATURE.VOLUME_MUTE);
-    if (hasVolume || hasMute) {
-      if (hasVolume) {
+    if (hasVolumeSet) {
+      items.push({ type: 'slider', row, col: 0, col_span: 3, show_icon: true,
+        slider_attribute: 'volume_level' });
+      row++;
+    } else if (hasVolumeStep || hasMute) {
+      if (hasVolumeStep) {
         items.push({ type: 'button', variant: 'pill_top', row, col: 1, icon: 'mdi:plus', hold_repeat: true,
           tap_action: { action: 'perform-action', perform_action: 'media_player.volume_up' } });
         row++;
@@ -450,7 +455,7 @@ export class GridRemoteCardEditor extends LitElement {
           tap_action: { action: 'perform-action', perform_action: 'media_player.volume_down' } });
       }
       if (hasMute)
-        items.push({ type: 'button', row, col: hasVolume ? 0 : 1, icon: 'mdi:volume-off',
+        items.push({ type: 'button', row, col: hasVolumeStep ? 0 : 1, icon: 'mdi:volume-off',
           tap_action: { action: 'perform-action', perform_action: 'media_player.volume_mute', data: { is_volume_muted: true } } });
       row++;
     }
