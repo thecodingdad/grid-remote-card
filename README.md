@@ -15,10 +15,12 @@ A fully customizable TV/media remote control card with drag-and-drop grid layout
 - Multiple button types: D-Pad, Color Buttons, Slider, Media Info, Button, Source Button, Number Pad, Entity Button
 - Configurable grid size and button size
 - Buttons can be arranged with drag-and-drop in visual editor
+- Multi-select editing: Ctrl/Cmd+click, marquee area selection, touch long-press; move or delete multiple items at once
+- Cross-page drag: drag items over a page tab to switch pages mid-drag; hover the `+` tab to auto-create a new page
 - Multiple button and slider designs: round, rounded, square, pill, pill (4 directions)
 - Tap and hold action with repeat support (configurable intervals)
-- Multi-page layout with automatic page switch (configurable conditions per page)
-- Haptic feedback (configurable)
+- Multi-page layout with swipe navigation and automatic page switch (configurable conditions per page)
+- Haptic feedback (configurable), only triggered when an action actually fires
 - Fully configurable colors (global and per button)
 - Two default presets and multiple device/entity specific preset with predefined actions
 - Full UI configuration (no exclusive YAML features)
@@ -60,8 +62,8 @@ items:
   - type: button
     icon: mdi:power
     tap_action:
-      action: call-service
-      service: remote.send_command
+      action: perform-action
+      perform_action: remote.send_command
       data:
         command: power
   - type: dpad
@@ -69,6 +71,13 @@ items:
   - type: slider
     entity: media_player.tv
 ```
+
+## Editor tips
+
+- **Multi-select**: Ctrl/Cmd+click individual items, drag a marquee rectangle across the grid, or long-press on touch to build a selection. Press Esc or click the background to clear.
+- **Multi-move**: dragging a selected item moves the whole selection together; the drop is only accepted when every item fits (no swap in multi-mode).
+- **Cross-page drag**: hover the drag over a page tab for ~400ms to switch to that page mid-drag, or hover the `+` tab to auto-create a new page. Pages auto-created during a drag that is never dropped are reverted.
+- **Delete multiple**: drag any selected item onto the trash zone to delete the whole selection.
 
 ## Configuration
 
@@ -125,8 +134,8 @@ All item types support:
 | `icon_color` | string | — | Icon color (CSS) |
 | `text_color` | string | — | Text color (CSS) |
 | `background_color` | string | — | Background color (CSS) |
-| `tap_action` | object | — | Action on tap |
-| `hold_action` | object | — | Action on hold |
+| `tap_action` | object | — | Action on tap (supports Jinja2 templates in `data` / `target`) |
+| `hold_action` | object | — | Action on hold (supports Jinja2 templates in `data` / `target`) |
 | `hold_repeat` | boolean | false | Repeat tap_action while held |
 | `hold_repeat_interval` | number | — | Override global repeat interval (ms) |
 
