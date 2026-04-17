@@ -20,6 +20,7 @@ interface PointerState {
   holdTimer: ReturnType<typeof setTimeout> | null;
   repeatTimer: ReturnType<typeof setInterval> | null;
   isHold: boolean;
+  cancelled: boolean;
   startX: number;
   startY: number;
 }
@@ -136,6 +137,7 @@ export abstract class ItemBase extends LitElement {
         holdTimer: null,
         repeatTimer: null,
         isHold: false,
+        cancelled: false,
         startX: 0,
         startY: 0,
       };
@@ -149,6 +151,7 @@ export abstract class ItemBase extends LitElement {
     el.setPointerCapture?.(e.pointerId);
     const s = this._getPointerState(el);
     s.isHold = false;
+    s.cancelled = false;
     s.startX = e.clientX;
     s.startY = e.clientY;
     this._createRipple(el, e);
@@ -175,6 +178,7 @@ export abstract class ItemBase extends LitElement {
       s.holdTimer = null;
       if (s.repeatTimer) clearInterval(s.repeatTimer);
       s.repeatTimer = null;
+      s.cancelled = true;
     }
   };
 
@@ -186,7 +190,7 @@ export abstract class ItemBase extends LitElement {
     s.holdTimer = null;
     if (s.repeatTimer) clearInterval(s.repeatTimer);
     s.repeatTimer = null;
-    if (s.isHold) return;
+    if (s.isHold || s.cancelled) return;
     this._fireAction('tap', subButton, el);
   };
 
