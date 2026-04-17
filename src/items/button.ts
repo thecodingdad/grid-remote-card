@@ -1,8 +1,8 @@
 /**
  * ButtonItem — the generic action button. Used for the majority of
  * remote keys. Renders a `<button class="remote-btn">` with icon or text
- * content and handles all tap/hold/double-tap semantics through the
- * shared ItemBase pointer machinery.
+ * content and handles all tap/hold semantics through the shared
+ * ItemBase pointer machinery.
  */
 
 import { css, html, type TemplateResult } from 'lit';
@@ -85,7 +85,6 @@ export function renderButtonEditor(
 
   const actionsData = {
     tap_action: item.tap_action ?? {},
-    double_tap_action: item.double_tap_action ?? {},
     hold_action: item.hold_action ?? {},
     hold_repeat: item.hold_repeat ?? false,
     hold_repeat_interval: item.hold_repeat_interval ?? '',

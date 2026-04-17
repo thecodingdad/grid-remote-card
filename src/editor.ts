@@ -56,7 +56,6 @@ const SCHEMA_GLOBAL_APPEARANCE = [
 
 const SCHEMA_GLOBAL_HAPTIC = [
   { name: 'haptic_tap', selector: { boolean: {} } },
-  { name: 'haptic_double_tap', selector: { boolean: {} } },
   { name: 'haptic_hold', selector: { boolean: {} } },
   { name: 'hold_repeat_interval', selector: { number: { min: 50, max: 1000, step: 10, mode: 'box', unit_of_measurement: 'ms' } } },
 ];
@@ -71,9 +70,9 @@ const EDITOR_LABELS: Record<string, string> = {
   card_background_color: 'Card background color',
   button_background_color: 'Button background color',
   scale: 'Scale', width: 'Width', height: 'Height',
-  tap_action: 'Tap action', double_tap_action: 'Double-tap action',
+  tap_action: 'Tap action',
   hold_action: 'Hold action',
-  haptic_tap: 'On tap', haptic_double_tap: 'On double-tap',
+  haptic_tap: 'On tap',
   haptic_hold: 'On hold',
   hold_repeat_interval: 'Repeat interval',
   hold_repeat: 'Repeat on hold',
@@ -463,6 +462,30 @@ export class GridRemoteCardEditor extends LitElement {
     return { items, rows: Math.max(row, 3), columns: 3 };
   }
 
+  /** Merge preset items into current page. Keeps items on other pages,
+   *  replaces items on current page, grows (never shrinks) columns/rows. */
+  _applyPresetToCurrentPage(items: any[], cols: number, rows: number) {
+    const targetPage = this._currentEditorPage;
+    const isMultiPage = this._pageCount > 1;
+    if (isMultiPage) {
+      for (const item of items) item.page = targetPage;
+    }
+    const keptItems = this._items.filter((it: Item) => (it.page || 0) !== targetPage);
+    const newCols = Math.max(this._config.columns || 1, cols || 1);
+    const newRows = Math.max(this._config.rows || 1, rows || 1);
+    this._openItemIdx = null;
+    this._pendingPreset = null;
+    this._presetEntity = '';
+    this._presetSecondaryEntity = '';
+    this._config = {
+      ...this._config,
+      columns: newCols,
+      rows: newRows,
+      items: [...keptItems, ...items],
+    };
+    this._fireConfigChanged();
+  }
+
   _confirmApplyPreset() {
     const key = this._pendingPreset;
     const entityId = this._presetEntity;
@@ -481,7 +504,7 @@ export class GridRemoteCardEditor extends LitElement {
         dialogImport: () => Promise.resolve(),
         dialogParams: {
           title: t(this.hass, 'Load template'),
-          text: t(this.hass, '"{label}" with {entities}? The current layout will be replaced.', { label: preset.label, entities: entityText }),
+          text: t(this.hass, '"{label}" with {entities}? The current page will be replaced.', { label: preset.label, entities: entityText }),
           confirmText: t(this.hass, 'Load'),
           dismissText: t(this.hass, 'Cancel'),
           destructive: true,
@@ -502,8 +525,8 @@ export class GridRemoteCardEditor extends LitElement {
               delete item._secondary;
               // Apply entity to items that need it (media → entity_id, source → source_entity)
               ITEMS[item.type as ItemType]?.cls.applyPresetEntity(item, eid);
-              // Apply entity to all perform-action tap/hold/double_tap actions via data.entity_id
-              for (const actionKey of ['tap_action', 'hold_action', 'double_tap_action']) {
+              // Apply entity to all perform-action tap/hold actions via data.entity_id
+              for (const actionKey of ['tap_action', 'hold_action']) {
                 if (item[actionKey]?.action === 'perform-action') {
                   item[actionKey].data = { ...item[actionKey].data, entity_id: eid };
                 }
@@ -511,7 +534,7 @@ export class GridRemoteCardEditor extends LitElement {
               // Apply entity to sub-button actions (dpad, color_buttons, numbers)
               if (item.buttons) {
                 for (const btn of Object.values(item.buttons) as any[]) {
-                  for (const actionKey of ['tap_action', 'hold_action', 'double_tap_action']) {
+                  for (const actionKey of ['tap_action', 'hold_action']) {
                     if (btn[actionKey]?.action === 'perform-action') {
                       btn[actionKey].data = { ...btn[actionKey].data, entity_id: eid };
                     }
@@ -519,19 +542,7 @@ export class GridRemoteCardEditor extends LitElement {
                 }
               }
             }
-            this._currentEditorPage = 0;
-            this._openItemIdx = null;
-            this._pendingPreset = null;
-            this._presetEntity = '';
-            this._presetSecondaryEntity = '';
-            this._config = {
-              ...this._config,
-              columns: cols,
-              rows,
-              items,
-              page_count: undefined,
-            };
-            this._fireConfigChanged();
+            this._applyPresetToCurrentPage(items, cols, rows);
           },
         },
       },
@@ -548,25 +559,13 @@ export class GridRemoteCardEditor extends LitElement {
         dialogImport: () => Promise.resolve(),
         dialogParams: {
           title: t(this.hass, 'Load template'),
-          text: t(this.hass, '"{label}"? The current layout will be replaced.', { label: preset.label }),
+          text: t(this.hass, '"{label}"? The current page will be replaced.', { label: preset.label }),
           confirmText: t(this.hass, 'Load'),
           dismissText: t(this.hass, 'Cancel'),
           destructive: true,
           confirm: () => {
             const items = JSON.parse(JSON.stringify(preset.items));
-            this._currentEditorPage = 0;
-            this._openItemIdx = null;
-            this._pendingPreset = null;
-            this._presetEntity = '';
-            this._presetSecondaryEntity = '';
-            this._config = {
-              ...this._config,
-              columns: preset.columns,
-              rows: preset.rows,
-              items,
-              page_count: undefined,
-            };
-            this._fireConfigChanged();
+            this._applyPresetToCurrentPage(items, preset.columns, preset.rows);
           },
         },
       },
@@ -1460,18 +1459,13 @@ export class GridRemoteCardEditor extends LitElement {
     return SCHEMA_BUTTON_BASIS;
   }
 
-  /** Common action fields (tap/double_tap/hold + hold_repeat). Pass
-   *  `withDoubleTap: false` for items that don't use double-tap (source,
-   *  numbers, media only fire tap/hold). */
-  _actionFields(opts: { withDoubleTap?: boolean; withHoldRepeat?: boolean } = {}): any[] {
-    const { withDoubleTap = true, withHoldRepeat = true } = opts;
+  /** Common action fields (tap/hold + hold_repeat). */
+  _actionFields(opts: { withHoldRepeat?: boolean } = {}): any[] {
+    const { withHoldRepeat = true } = opts;
     const fields: any[] = [
       { name: 'tap_action', selector: { ui_action: {} } },
+      { name: 'hold_action', selector: { ui_action: {} } },
     ];
-    if (withDoubleTap) {
-      fields.push({ name: 'double_tap_action', selector: { ui_action: {} } });
-    }
-    fields.push({ name: 'hold_action', selector: { ui_action: {} } });
     if (withHoldRepeat) {
       fields.push(
         { name: 'hold_repeat', selector: { boolean: {} } },
@@ -1519,7 +1513,6 @@ export class GridRemoteCardEditor extends LitElement {
     const sizing = this._config.sizing || 'normal';
     const hapticData = {
       haptic_tap: this._config.haptic_tap ?? false,
-      haptic_double_tap: this._config.haptic_double_tap ?? false,
       haptic_hold: this._config.haptic_hold ?? false,
       hold_repeat_interval: this._config.hold_repeat_interval ?? DEFAULT_REPEAT_INTERVAL_MS,
     };
@@ -1655,7 +1648,6 @@ export class GridRemoteCardEditor extends LitElement {
 
         // Action fields: persist only if action is set and not 'none'
         case 'tap_action':
-        case 'double_tap_action':
         case 'hold_action':
           if (v && v.action && v.action !== 'none') item[key] = v;
           else delete item[key];
@@ -1710,7 +1702,6 @@ export class GridRemoteCardEditor extends LitElement {
           break;
 
         case 'tap_action':
-        case 'double_tap_action':
         case 'hold_action':
           if (v && v.action && v.action !== 'none') btnCfg[fieldKey] = v;
           else delete btnCfg[fieldKey];

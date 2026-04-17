@@ -1,10 +1,10 @@
 /**
  * GridRemoteCard — top-level card.
  *
- * The card handles grid layout, multi-page, swipe gestures, preset
+ * Handles grid layout, multi-page navigation, swipe gestures, preset
  * loading and popup overlay rendering. Each item type is implemented
  * as its own custom element under `./items/` and rendered via a type
- * → tag switch in `_renderItem()`.
+ * → tag lookup in `_renderItem()`.
  */
 
 import { LitElement, type PropertyValues, type TemplateResult } from 'lit';
@@ -388,10 +388,47 @@ export class GridRemoteCard extends LitElement {
     this._fireHassAction({ [`${actionType}_action`]: actionConfig }, actionType);
   }
 
-  _fireHassAction(config: Record<string, any>, actionType: string): void {
+  async _fireHassAction(config: Record<string, any>, actionType: string): Promise<void> {
+    const cfg = { ...config };
+    const action = cfg[`${actionType}_action`];
+    if (action && typeof action === 'object') {
+      const next = { ...action };
+      try {
+        if (next.data) next.data = await this._renderTemplates(next.data);
+        if (next.target) next.target = await this._renderTemplates(next.target);
+      } catch (e: any) {
+        const msg = e?.body?.message || e?.message || String(e);
+        console.error('grc: template render failed, action aborted —', msg);
+        this._showError(`Template render failed: ${msg}`);
+        return;
+      }
+      cfg[`${actionType}_action`] = next;
+    }
     const event = new Event('hass-action', { bubbles: true, composed: true }) as Event & { detail?: any };
-    event.detail = { config, action: actionType };
+    event.detail = { config: cfg, action: actionType };
     this.dispatchEvent(event);
+  }
+
+  private _showError(message: string): void {
+    this.dispatchEvent(new CustomEvent('hass-notification', {
+      bubbles: true, composed: true,
+      detail: { message },
+    }));
+  }
+
+  private async _renderTemplates(obj: any): Promise<any> {
+    if (obj == null || typeof obj !== 'object') return obj;
+    const out: any = Array.isArray(obj) ? [] : {};
+    await Promise.all(Object.entries(obj).map(async ([k, v]) => {
+      if (typeof v === 'string' && /\{\{|\{%|\{#/.test(v)) {
+        out[k] = await this.hass.callApi('POST', 'template', { template: v });
+      } else if (typeof v === 'object' && v !== null) {
+        out[k] = await this._renderTemplates(v);
+      } else {
+        out[k] = v;
+      }
+    }));
+    return out;
   }
 
   // -- Popup outside-click listener ------------------------------------------

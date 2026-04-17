@@ -58,7 +58,6 @@ export interface SubButtonConfig {
   color?: string; // color_buttons only
   tap_action?: GrcAction;
   hold_action?: GrcAction;
-  double_tap_action?: GrcAction;
   hold_repeat?: boolean;
   hold_repeat_interval?: number;
   [key: string]: any;
@@ -85,7 +84,6 @@ export interface Item {
   // Common actions
   tap_action?: GrcAction;
   hold_action?: GrcAction;
-  double_tap_action?: GrcAction;
   hold_repeat?: boolean;
   hold_repeat_interval?: number;
 
@@ -164,7 +162,6 @@ export interface GridRemoteCardConfig extends LovelaceCardConfig {
   text_color?: string;
   button_background_color?: string;
   haptic_tap?: boolean;
-  haptic_double_tap?: boolean;
   haptic_hold?: boolean;
   hold_repeat_interval?: number;
   _editor_page?: number;

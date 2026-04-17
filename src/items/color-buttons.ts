@@ -189,7 +189,6 @@ function renderColorBtnSubEditor(
 
   const actionsData = {
     tap_action: btnCfg.tap_action ?? {},
-    double_tap_action: btnCfg.double_tap_action ?? {},
     hold_action: btnCfg.hold_action ?? {},
     hold_repeat: btnCfg.hold_repeat ?? false,
     hold_repeat_interval: btnCfg.hold_repeat_interval ?? '',

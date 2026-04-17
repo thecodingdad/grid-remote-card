@@ -52,10 +52,8 @@ export default {
   "Width": "Breite",
   "Height": "Höhe",
   "Tap action": "Tippen-Aktion",
-  "Double-tap action": "Doppeltippen-Aktion",
   "Hold action": "Halten-Aktion",
-  "On Tap": "Beim Tippen",
-  "On Double Tap": "Beim Doppeltippen",
+  "On tap": "Beim Tippen",
   "On hold": "Beim Halten",
   "Repeat interval": "Wiederholintervall",
   "Repeat on hold": "Wiederholen beim Halten",
@@ -125,8 +123,8 @@ export default {
   "Load": "Laden",
   "Cancel": "Abbrechen",
   "Load template": "Vorlage laden",
-  "\"{label}\" with {entities}? The current layout will be replaced.": "\"{label}\" mit {entities}? Das aktuelle Layout wird ersetzt.",
-  "\"{label}\"? The current layout will be replaced.": "\"{label}\"? Das aktuelle Layout wird ersetzt.",
+  "\"{label}\" with {entities}? The current page will be replaced.": "\"{label}\" mit {entities}? Die aktuelle Seite wird ersetzt.",
+  "\"{label}\"? The current page will be replaced.": "\"{label}\"? Die aktuelle Seite wird ersetzt.",
 
   // Page tabs
   "Page {n}": "Seite {n}",

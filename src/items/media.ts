@@ -258,7 +258,7 @@ export function renderMediaEditor(
     hold_repeat: item.hold_repeat ?? false,
     hold_repeat_interval: item.hold_repeat_interval ?? '',
   };
-  const actionsSchema = editor._actionFields({ withDoubleTap: false });
+  const actionsSchema = editor._actionFields();
 
   return html`
     ${editor._renderCollapsible(`item-${index}-basis`, t(editor.hass, 'Basis'), true,

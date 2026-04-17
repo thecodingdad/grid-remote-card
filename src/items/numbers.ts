@@ -223,7 +223,7 @@ export function renderNumbersEditor(
     hold_repeat: item.hold_repeat ?? false,
     hold_repeat_interval: item.hold_repeat_interval ?? '',
   };
-  const actionsSchema = editor._actionFields({ withDoubleTap: false });
+  const actionsSchema = editor._actionFields();
 
   const optionsData = {
     hide_dash: item.hide_dash ?? false,

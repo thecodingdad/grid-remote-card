@@ -16,7 +16,7 @@ A fully customizable TV/media remote control card with drag-and-drop grid layout
 - Configurable grid size and button size
 - Buttons can be arranged with drag-and-drop in visual editor
 - Multiple button and slider designs: round, rounded, square, pill, pill (4 directions)
-- Tap, double-tap, and hold action with repeat support (configurable intervals)
+- Tap and hold action with repeat support (configurable intervals)
 - Multi-page layout with automatic page switch (configurable conditions per page)
 - Haptic feedback (configurable)
 - Fully configurable colors (global and per button)
@@ -88,7 +88,6 @@ items:
 | `text_color` | string | — | Global default text color |
 | `button_background_color` | string | — | Global default button background color |
 | `haptic_tap` | boolean | false | Haptic feedback on tap |
-| `haptic_double_tap` | boolean | false | Haptic feedback on double-tap |
 | `haptic_hold` | boolean | false | Haptic feedback on hold |
 | `hold_repeat_interval` | number | 200 | Hold repeat interval in ms (50-1000) |
 
@@ -128,7 +127,6 @@ All item types support:
 | `background_color` | string | — | Background color (CSS) |
 | `tap_action` | object | — | Action on tap |
 | `hold_action` | object | — | Action on hold |
-| `double_tap_action` | object | — | Action on double-tap |
 | `hold_repeat` | boolean | false | Repeat tap_action while held |
 | `hold_repeat_interval` | number | — | Override global repeat interval (ms) |
 
@@ -139,7 +137,7 @@ All item types support:
 | `col_span` | number | 3 | Width in columns (always square) |
 | `buttons` | object | — | Per-direction config (keys: `up`, `down`, `left`, `right`, `ok`) |
 
-Each direction in `buttons` supports: `icon`, `text`, `icon_color`, `text_color`, `background_color`, `tap_action`, `hold_action`, `double_tap_action`, `hold_repeat`, `hold_repeat_interval`.
+Each direction in `buttons` supports: `icon`, `text`, `icon_color`, `text_color`, `background_color`, `tap_action`, `hold_action`, `hold_repeat`, `hold_repeat_interval`.
 
 ### Slider Options
 

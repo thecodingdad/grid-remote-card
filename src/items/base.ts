@@ -4,7 +4,7 @@
  * Each concrete item type (button, slider, dpad, …) extends ItemBase
  * and is registered as a custom element via `@customElement('grc-<type>-item')`.
  * The base class holds the pointer-event state machine (tap, hold,
- * repeat, double-tap), ripple creation, and the action dispatch pipeline.
+ * repeat), ripple creation, and the action dispatch pipeline.
  *
  * Sub-classes override `render()` and optionally `handleItemAction()`
  * for special tap behaviour (source/numbers/media/entity overrides).
@@ -14,14 +14,12 @@ import { LitElement } from 'lit';
 import { property } from 'lit/decorators.js';
 import type { GridRemoteCard } from '../card';
 import type { GridRemoteCardConfig, HomeAssistant, Item, ItemSize } from '../types';
-import { DEFAULT_REPEAT_INTERVAL_MS, DOUBLE_TAP_MS, HOLD_DELAY_MS } from '../constants';
+import { DEFAULT_REPEAT_INTERVAL_MS, HOLD_DELAY_MS } from '../constants';
 
 interface PointerState {
   holdTimer: ReturnType<typeof setTimeout> | null;
   repeatTimer: ReturnType<typeof setInterval> | null;
   isHold: boolean;
-  tapCount: number;
-  tapTimer: ReturnType<typeof setTimeout> | null;
   startX: number;
   startY: number;
 }
@@ -138,8 +136,6 @@ export abstract class ItemBase extends LitElement {
         holdTimer: null,
         repeatTimer: null,
         isHold: false,
-        tapCount: 0,
-        tapTimer: null,
         startX: 0,
         startY: 0,
       };
@@ -191,17 +187,7 @@ export abstract class ItemBase extends LitElement {
     if (s.repeatTimer) clearInterval(s.repeatTimer);
     s.repeatTimer = null;
     if (s.isHold) return;
-    s.tapCount++;
-    if (s.tapCount === 1) {
-      s.tapTimer = setTimeout(() => {
-        if (s.tapCount === 1) this._fireAction('tap', subButton, el);
-        s.tapCount = 0;
-      }, DOUBLE_TAP_MS);
-    } else if (s.tapCount === 2) {
-      if (s.tapTimer) clearTimeout(s.tapTimer);
-      s.tapCount = 0;
-      this._fireAction('double_tap', subButton, el);
-    }
+    this._fireAction('tap', subButton, el);
   };
 
   protected _onPointerCancel = (e: PointerEvent): void => {

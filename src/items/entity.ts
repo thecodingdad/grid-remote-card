@@ -133,7 +133,6 @@ export function renderEntityEditor(
 
   const actionsData = {
     tap_action: item.tap_action ?? {},
-    double_tap_action: item.double_tap_action ?? {},
     hold_action: item.hold_action ?? {},
     hold_repeat: item.hold_repeat ?? false,
     hold_repeat_interval: item.hold_repeat_interval ?? '',

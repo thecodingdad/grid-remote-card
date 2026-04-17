@@ -52,10 +52,8 @@ export default {
   "Width": "Width",
   "Height": "Height",
   "Tap action": "Tap action",
-  "Double-tap action": "Double-tap action",
   "Hold action": "Hold action",
   "On tap": "On tap",
-  "On double-tap": "On double-tap",
   "On hold": "On hold",
   "Repeat interval": "Repeat interval",
   "Repeat on hold": "Repeat on hold",
@@ -125,8 +123,8 @@ export default {
   "Load": "Load",
   "Cancel": "Cancel",
   "Load template": "Load template",
-  "\"{label}\" with {entities}? The current layout will be replaced.": "\"{label}\" with {entities}? The current layout will be replaced.",
-  "\"{label}\"? The current layout will be replaced.": "\"{label}\"? The current layout will be replaced.",
+  "\"{label}\" with {entities}? The current page will be replaced.": "\"{label}\" with {entities}? The current page will be replaced.",
+  "\"{label}\"? The current page will be replaced.": "\"{label}\"? The current page will be replaced.",
 
   // Page tabs
   "Page {n}": "Page {n}",

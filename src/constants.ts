@@ -6,7 +6,6 @@
 import type { ItemSize, ItemType, ItemVariant } from './types';
 
 export const HOLD_DELAY_MS = 500;
-export const DOUBLE_TAP_MS = 250;
 export const DEFAULT_REPEAT_INTERVAL_MS = 200;
 
 export const ITEM_SIZES: Record<ItemType, ItemSize> = {
