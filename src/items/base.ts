@@ -248,13 +248,20 @@ export abstract class ItemBase extends LitElement {
   /** Shared action firing. Calls `handleItemAction()` for item-specific
    *  overrides first, then delegates to the card's generic dispatcher. */
   protected _fireAction(actionType: string, subButton: string | null, anchorEl: HTMLElement): void {
-    const hapticKey = `haptic_${actionType}` as keyof GridRemoteCardConfig;
-    if (this.card._config[hapticKey]) {
-      try { navigator.vibrate?.(50); } catch (_) { /* noop */ }
+    // Try item-specific handler first (only for main button). It returns true
+    // when it handled the action (e.g. source-popup open, entity more-info).
+    let fired = false;
+    if (!subButton && this.handleItemAction(actionType, anchorEl, subButton)) {
+      fired = true;
+    } else {
+      fired = this.card._dispatchItemAction(this.item, this.index, subButton, actionType);
     }
-    // Item-specific handler first (only for main button, not sub-buttons)
-    if (!subButton && this.handleItemAction(actionType, anchorEl, subButton)) return;
-    // Generic dispatch through the card
-    this.card._dispatchItemAction(this.item, this.index, subButton, actionType);
+    // Haptic only when an action actually fired
+    if (fired) {
+      const hapticKey = `haptic_${actionType}` as keyof GridRemoteCardConfig;
+      if (this.card._config[hapticKey]) {
+        try { navigator.vibrate?.(50); } catch (_) { /* noop */ }
+      }
+    }
   }
 }

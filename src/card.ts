@@ -393,9 +393,10 @@ export class GridRemoteCard extends LitElement {
   // -- Action dispatch (called from ItemBase._fireAction) --------------------
 
   /** Generic action dispatcher. Item custom elements call this via
-   *  their base class when `handleItemAction()` returned false. */
-  _dispatchItemAction(item: Item, _itemIndex: number, subButton: string | null, actionType: string): void {
-    if (!item) return;
+   *  their base class when `handleItemAction()` returned false.
+   *  Returns true when an action was actually dispatched. */
+  _dispatchItemAction(item: Item, _itemIndex: number, subButton: string | null, actionType: string): boolean {
+    if (!item) return false;
     const meta = ITEMS[item.type];
 
     let actionConfig: any;
@@ -405,8 +406,9 @@ export class GridRemoteCard extends LitElement {
       actionConfig = (item as any)[`${actionType}_action`];
     }
 
-    if (!actionConfig || actionConfig.action === 'none') return;
+    if (!actionConfig || actionConfig.action === 'none') return false;
     this._fireHassAction({ [`${actionType}_action`]: actionConfig }, actionType);
+    return true;
   }
 
   async _fireHassAction(config: Record<string, any>, actionType: string): Promise<void> {
