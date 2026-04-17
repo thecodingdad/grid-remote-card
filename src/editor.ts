@@ -148,6 +148,8 @@ export class GridRemoteCardEditor extends LitElement {
       _config:          { state: true },
       _activePanel:     { state: true },
       _openItemIdx:     { state: true },
+      _selectedIdx:     { state: true, hasChanged: () => true },
+      _marqueeRect:     { state: true },
       _openSubButton:   { state: true },
       _openSourceIdx:   { state: true },
       _dragFromIdx:        { state: true },
@@ -168,6 +170,12 @@ export class GridRemoteCardEditor extends LitElement {
   _config: GridRemoteCardConfig = {} as GridRemoteCardConfig;
   _activePanel: 'layout' | 'settings' = 'layout';
   _openItemIdx: number | null = null;
+  _selectedIdx: Set<number> = new Set();
+  _marqueeRect: { x: number; y: number; w: number; h: number } | null = null;
+  _marqueeStartX = 0;
+  _marqueeStartY = 0;
+  _longPressTimer: ReturnType<typeof setTimeout> | null = null;
+  _onEscBound: ((e: KeyboardEvent) => void) | null = null;
   _openSubButton: string | null = null;
   _openSourceIdx: number | null = null;
   _dragFromIdx: number | null = null;
@@ -244,10 +252,23 @@ export class GridRemoteCardEditor extends LitElement {
         this._dialogBoxEditCard._confirmCancel();
       }
     }
+    this._onEscBound = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && this._selectedIdx.size > 0) {
+        e.stopPropagation();
+        e.preventDefault();
+        this._clearSelection();
+      }
+    };
+    // Capture phase on document to intercept before HA edit dialog catches Escape
+    document.addEventListener('keydown', this._onEscBound, true);
   }
 
   disconnectedCallback() {
     super.disconnectedCallback();
+    if (this._onEscBound) {
+      document.removeEventListener('keydown', this._onEscBound, true);
+      this._onEscBound = null;
+    }
     // Clean up dialog-box handler if still pending
     if (this._dialogBoxHandler && this._dialogBoxEditCard) {
       this._dialogBoxEditCard.removeEventListener('show-dialog', this._dialogBoxHandler, true);
@@ -308,11 +329,16 @@ export class GridRemoteCardEditor extends LitElement {
 
       ${this._renderPageTabs()}
       ${this._renderPresetSelector()}
-      <div class="grid-editor-container">
+      <div class="grid-editor-container"
+           @pointerdown=${(e: PointerEvent) => this._onGridBgPointerDown(e)}>
         <div class="grid-editor" style="${gridStyle}">
           ${this._renderGridCells(cols, rows)}
           ${pageItems.map(([item, i]) => this._renderGridEditorItem(item, i))}
         </div>
+        ${this._marqueeRect
+          ? html`<div class="marquee"
+                      style="left:${this._marqueeRect.x}px;top:${this._marqueeRect.y}px;width:${this._marqueeRect.w}px;height:${this._marqueeRect.h}px;"></div>`
+          : ''}
         <button class="clear-all-btn" @click=${() => this._clearAllItems()} title="${t(this.hass, 'Remove all buttons')}">
           <ha-icon icon="mdi:delete-sweep-outline" style="--mdc-icon-size:20px;"></ha-icon>
         </button>
@@ -473,7 +499,7 @@ export class GridRemoteCardEditor extends LitElement {
     const keptItems = this._items.filter((it: Item) => (it.page || 0) !== targetPage);
     const newCols = Math.max(this._config.columns || 1, cols || 1);
     const newRows = Math.max(this._config.rows || 1, rows || 1);
-    this._openItemIdx = null;
+    this._clearSelection();
     this._pendingPreset = null;
     this._presetEntity = '';
     this._presetSecondaryEntity = '';
@@ -578,7 +604,7 @@ export class GridRemoteCardEditor extends LitElement {
     for (let i = 0; i < count; i++) {
       tabs.push(html`
         <button class="page-tab ${i === this._currentEditorPage ? 'active' : ''}"
-                @click=${() => { this._currentEditorPage = i; this._openItemIdx = null; this._fireConfigChanged(); }}>
+                @click=${() => { this._currentEditorPage = i; this._clearSelection(); this._fireConfigChanged(); }}>
           ${t(this.hass, 'Page {n}', { n: i + 1 })}
           ${count > 1 ? html`
             <span class="page-tab-delete" @click=${(e: MouseEvent) => { e.stopPropagation(); this._deletePage(i); }}
@@ -608,7 +634,7 @@ export class GridRemoteCardEditor extends LitElement {
     const newCount = this._pageCount + 1;
     this._config = { ...this._config, page_count: newCount };
     this._currentEditorPage = newCount - 1;
-    this._openItemIdx = null;
+    this._clearSelection();
     this._fireConfigChanged();
   }
 
@@ -708,7 +734,7 @@ export class GridRemoteCardEditor extends LitElement {
     }
     this._config = config;
     if (this._currentEditorPage >= newCount) this._currentEditorPage = newCount - 1;
-    this._openItemIdx = null;
+    this._clearSelection();
     this._fireConfigChanged();
   }
 
@@ -944,12 +970,20 @@ export class GridRemoteCardEditor extends LitElement {
     const size = meta.cls.getSize(item);
     const icon = this._resolveEditorIcon(item);
     const text = meta.cls.showTextInGrid && item.text ? item.text : '';
-    const isSelected = this._openItemIdx === idx;
+    const isOpen = this._openItemIdx === idx;
+    const isSelected = this._selectedIdx.has(idx);
+    const cls = [
+      'grid-editor-item',
+      `type-${item.type}`,
+      isOpen ? 'selected' : '',
+      isSelected && !isOpen ? 'multi-selected' : '',
+    ].filter(Boolean).join(' ');
 
     return html`
-      <div class="grid-editor-item ${isSelected ? 'selected' : ''} type-${item.type}"
+      <div class="${cls}"
            style="grid-row:${item.row + 1}/span ${size.rows};grid-column:${item.col + 1}/span ${size.cols};"
-           @pointerdown=${(e: PointerEvent) => this._onGridItemPointerDown(e, idx)}>
+           @pointerdown=${(e: PointerEvent) => this._onGridItemPointerDown(e, idx)}
+           @contextmenu=${(e: MouseEvent) => e.preventDefault()}>
         ${text
           ? html`<span class="grid-item-text">${text}</span>`
           : html`<ha-icon icon="${icon}"></ha-icon>`}
@@ -962,6 +996,104 @@ export class GridRemoteCardEditor extends LitElement {
     `;
   }
 
+  // -- Selection helpers ------------------------------------------------------
+
+  _clearSelection() {
+    this._selectedIdx = new Set();
+    this._openItemIdx = null;
+  }
+
+  _selectOnly(idx: number, openEditor: boolean) {
+    this._selectedIdx = new Set([idx]);
+    this._openItemIdx = openEditor ? idx : null;
+  }
+
+  _toggleSelection(idx: number) {
+    const next = new Set(this._selectedIdx);
+    if (next.has(idx)) next.delete(idx);
+    else next.add(idx);
+    this._selectedIdx = next;
+    // Multi-select disables single-item editor panel
+    this._openItemIdx = next.size === 1 ? [...next][0] : null;
+  }
+
+  /** Pointerdown on grid container (but not on an item). Starts marquee
+   *  selection or clears selection on a simple click. Marquee rect is
+   *  drawn in container-local coords; overlap checks use grid-local. */
+  _onGridBgPointerDown(e: PointerEvent) {
+    if (e.button !== 0) return;
+    const target = e.target as HTMLElement;
+    // Ignore if the event originated from an item, the delete button, or the trash zone
+    if (target.closest('.grid-editor-item')) return;
+    if (target.closest('.clear-all-btn')) return;
+    const container = e.currentTarget as HTMLElement;
+    const gridEl = container.querySelector('.grid-editor') as HTMLElement | null;
+    if (!gridEl) return;
+    const containerRect = container.getBoundingClientRect();
+    const gridRect = gridEl.getBoundingClientRect();
+    // Offset from container to grid for coord conversion
+    const gridOffsetX = gridRect.left - containerRect.left;
+    const gridOffsetY = gridRect.top - containerRect.top;
+    const isMulti = e.ctrlKey || e.metaKey;
+    const initialSel = isMulti ? new Set(this._selectedIdx) : new Set<number>();
+    const startX = e.clientX - containerRect.left;
+    const startY = e.clientY - containerRect.top;
+    let moved = false;
+    container.setPointerCapture(e.pointerId);
+
+    const onMove = (ev: PointerEvent) => {
+      const x = ev.clientX - containerRect.left;
+      const y = ev.clientY - containerRect.top;
+      const dx = x - startX;
+      const dy = y - startY;
+      if (!moved && Math.abs(dx) < 4 && Math.abs(dy) < 4) return;
+      moved = true;
+      const mx = Math.min(startX, x);
+      const my = Math.min(startY, y);
+      const mw = Math.abs(dx);
+      const mh = Math.abs(dy);
+      this._marqueeRect = { x: mx, y: my, w: mw, h: mh };
+
+      // Convert marquee rect to grid-local coords for item overlap check
+      const gmX = mx - gridOffsetX;
+      const gmY = my - gridOffsetY;
+      const cols = this._config.columns || 3;
+      const rows = this._config.rows || 9;
+      const cellW = gridRect.width / cols;
+      const cellH = gridRect.height / rows;
+      const next = new Set(initialSel);
+      const page = this._currentEditorPage;
+      const multiPage = this._pageCount > 1;
+      for (let i = 0; i < this._items.length; i++) {
+        const it = this._items[i];
+        if (multiPage && (it.page || 0) !== page) continue;
+        const meta = ITEMS[it.type];
+        if (!meta) continue;
+        const size = meta.cls.getSize(it);
+        const itX = it.col * cellW;
+        const itY = it.row * cellH;
+        const itW = size.cols * cellW;
+        const itH = size.rows * cellH;
+        const overlaps = itX < gmX + mw && itX + itW > gmX && itY < gmY + mh && itY + itH > gmY;
+        if (overlaps) next.add(i);
+        else if (!isMulti) next.delete(i);
+      }
+      this._selectedIdx = next;
+      this._openItemIdx = next.size === 1 ? [...next][0] : null;
+    };
+    const onUp = () => {
+      container.removeEventListener('pointermove', onMove);
+      container.removeEventListener('pointerup', onUp);
+      container.removeEventListener('pointercancel', onUp);
+      this._marqueeRect = null;
+      // Plain click (no drag) on background clears selection
+      if (!moved && !isMulti) this._clearSelection();
+    };
+    container.addEventListener('pointermove', onMove);
+    container.addEventListener('pointerup', onUp);
+    container.addEventListener('pointercancel', onUp);
+  }
+
   // -- Grid drag-and-drop -----------------------------------------------------
 
   _onGridItemPointerDown(e: PointerEvent, idx: number) {
@@ -969,22 +1101,50 @@ export class GridRemoteCardEditor extends LitElement {
     const startX = e.clientX;
     const startY = e.clientY;
     const el = e.currentTarget as HTMLElement;
+    const isMulti = e.ctrlKey || e.metaKey;
     el.setPointerCapture(e.pointerId);
+
+    // Long-press detection for touch → add to selection
+    let longPressFired = false;
+    if (e.pointerType === 'touch' && !isMulti) {
+      this._longPressTimer = setTimeout(() => {
+        longPressFired = true;
+        this._longPressTimer = null;
+        try { navigator.vibrate?.(30); } catch (_) { /* noop */ }
+        const next = new Set(this._selectedIdx);
+        next.add(idx);
+        this._selectedIdx = next;
+        this._openItemIdx = next.size === 1 ? idx : null;
+      }, 500);
+    }
 
     const onMove = (ev: PointerEvent) => {
       if (Math.abs(ev.clientX - startX) > 5 || Math.abs(ev.clientY - startY) > 5) {
+        if (this._longPressTimer) { clearTimeout(this._longPressTimer); this._longPressTimer = null; }
         el.removeEventListener('pointermove', onMove);
         el.removeEventListener('pointerup', onUp);
         this._startGridDrag(el, idx, ev);
       }
     };
     const onUp = () => {
+      if (this._longPressTimer) { clearTimeout(this._longPressTimer); this._longPressTimer = null; }
       el.removeEventListener('pointermove', onMove);
       el.removeEventListener('pointerup', onUp);
-      // Simple click => open editor
-      const opening = this._openItemIdx !== idx;
-      this._openItemIdx = opening ? idx : null;
-      if (opening) {
+      if (longPressFired) return;
+      if (isMulti) {
+        // Ctrl/Cmd+Click: toggle selection, no editor
+        this._toggleSelection(idx);
+        return;
+      }
+      if (this._selectedIdx.size > 1) {
+        // Multi-selection active: plain click selects only this one, opens editor
+        this._selectOnly(idx, true);
+      } else {
+        // Single-select: toggle editor open/close
+        const opening = this._openItemIdx !== idx;
+        this._selectOnly(idx, opening);
+      }
+      if (this._openItemIdx === idx) {
         this.updateComplete.then(() => {
           setTimeout(() => {
             const ed = this.shadowRoot?.querySelector('.button-editor-below');
@@ -1013,66 +1173,180 @@ export class GridRemoteCardEditor extends LitElement {
     const size = getItemSize(item);
     const anchorCol = Math.max(0, Math.min(grabCol, size.cols - 1));
     const anchorRow = Math.max(0, Math.min(grabRow, size.rows - 1));
+    // Touch drag: shift ghost up so the finger doesn't cover it.
+    // Fixed ~one-cell offset regardless of item height so tall items
+    // (dpad, multi-row) don't get pushed off screen.
+    const isTouch = e.pointerType === 'touch';
+    const touchOffsetY = isTouch ? cellH + 20 : 0;
 
     const trashEl = this.shadowRoot?.querySelector('.drag-trash-zone') as HTMLElement | null;
     if (trashEl) trashEl.classList.add('visible');
 
+    // Determine drag group: if the grabbed item is in the multi-selection,
+    // drag ALL selected items together. Otherwise drag just this one and
+    // replace the selection with it.
+    const isInSelection = this._selectedIdx.has(idx) && this._selectedIdx.size > 1;
+    const groupIdxs: number[] = isInSelection ? [...this._selectedIdx] : [idx];
+    if (!isInSelection) this._selectOnly(idx, false);
+
+    const dragItems = groupIdxs.map(i => {
+      const it = this._items[i];
+      const dragEl = i === idx
+        ? el
+        : (this.shadowRoot?.querySelectorAll('.grid-editor-item')[groupIdxs.indexOf(i)] as HTMLElement | null) || null;
+      // Find the actual element by looking up items rendered on current page
+      return {
+        idx: i,
+        el: dragEl,
+        relCol: it.col - item.col,
+        relRow: it.row - item.row,
+      };
+    });
+    // Reliable element lookup: iterate all .grid-editor-item in DOM and match by index
+    const allItemEls = this.shadowRoot?.querySelectorAll('.grid-editor-item') as NodeListOf<HTMLElement>;
+    if (allItemEls) {
+      // Build mapping from index → element by walking pageItems in render order
+      const multiPage = this._pageCount > 1;
+      const pageItems: number[] = [];
+      for (let i = 0; i < this._items.length; i++) {
+        if (multiPage && (this._items[i].page || 0) !== this._currentEditorPage) continue;
+        pageItems.push(i);
+      }
+      for (const di of dragItems) {
+        const pos = pageItems.indexOf(di.idx);
+        if (pos >= 0 && allItemEls[pos]) di.el = allItemEls[pos];
+      }
+    }
+    // Create ghost overlay clones that follow the cursor. The ghosts live
+    // in .drag-ghost-layer (absolute positioned inside .grid-editor-container)
+    // and survive page-filter re-renders.
+    const containerEl = this.shadowRoot?.querySelector('.grid-editor-container') as HTMLElement | null;
+    const containerRect = containerEl?.getBoundingClientRect();
+    let ghostLayer = this.shadowRoot?.querySelector('.drag-ghost-layer') as HTMLElement | null;
+    if (!ghostLayer && containerEl) {
+      ghostLayer = document.createElement('div');
+      ghostLayer.className = 'drag-ghost-layer';
+      containerEl.appendChild(ghostLayer);
+    }
+    const ghosts: HTMLElement[] = [];
+    if (ghostLayer && containerRect) {
+      for (const di of dragItems) {
+        if (!di.el) { ghosts.push(null as any); continue; }
+        const srcRect = di.el.getBoundingClientRect();
+        const g = di.el.cloneNode(true) as HTMLElement;
+        g.classList.add('drag-ghost');
+        g.style.position = 'absolute';
+        g.style.left = `${srcRect.left - containerRect.left}px`;
+        g.style.top = `${srcRect.top - containerRect.top}px`;
+        g.style.width = `${srcRect.width}px`;
+        g.style.height = `${srcRect.height}px`;
+        g.style.gridRow = '';
+        g.style.gridColumn = '';
+        g.style.pointerEvents = 'none';
+        ghostLayer.appendChild(g);
+        ghosts.push(g);
+        di.el.classList.add('dragging-source');
+      }
+    }
+
     this._gridDragState = {
-      itemIdx: idx, el, startX: e.clientX, startY: e.clientY,
-      gridRect, cols, rows, targetRow: null, targetCol: null, targetValid: false,
-      anchorCol, anchorRow, trashEl, overTrash: false,
+      anchorIdx: idx,
+      dragItems,
+      ghosts,
+      ghostLayer,
+      startX: e.clientX,
+      startY: e.clientY,
+      gridRect, cols, rows,
+      targetRow: null, targetCol: null, targetValid: false,
+      anchorCol, anchorRow,
+      touchOffsetY,
+      trashEl, overTrash: false,
+      pageSwitched: false,
+      originalPageCount: this._pageCount,
+      originalCurrentPage: this._currentEditorPage,
     };
-    el.classList.add('dragging');
 
     const onMove = (ev: PointerEvent) => this._onGridDragMove(ev);
     const onUp = (ev: PointerEvent) => { this._onGridDragEnd(ev); cleanup(); };
     const onCancel = () => { this._onGridDragCancel(); cleanup(); };
     const cleanup = () => {
-      el.removeEventListener('pointermove', onMove);
-      el.removeEventListener('pointerup', onUp);
-      el.removeEventListener('pointercancel', onCancel);
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onUp);
+      document.removeEventListener('pointercancel', onCancel);
     };
-    el.addEventListener('pointermove', onMove);
-    el.addEventListener('pointerup', onUp);
-    el.addEventListener('pointercancel', onCancel);
+    // Listen on document so drag survives re-renders (e.g. cross-page switch)
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerup', onUp);
+    document.addEventListener('pointercancel', onCancel);
   }
 
   _onGridDragMove(e: PointerEvent) {
     const d = this._gridDragState;
     if (!d) return;
     const dx = e.clientX - d.startX;
-    const dy = e.clientY - d.startY;
-    d.el.style.transform = `translate(${dx}px, ${dy}px)`;
+    const dy = e.clientY - d.startY - (d.touchOffsetY || 0);
+    // Transform ghost clones (survive page-filter re-renders)
+    if (d.ghosts) {
+      for (const g of d.ghosts) {
+        if (g) g.style.transform = `translate(${dx}px, ${dy}px)`;
+      }
+    }
 
-    const pointerCol = Math.floor((e.clientX - d.gridRect.left) / (d.gridRect.width / d.cols));
-    const pointerRow = Math.floor((e.clientY - d.gridRect.top) / (d.gridRect.height / d.rows));
-    const col = pointerCol - d.anchorCol;
-    const row = pointerRow - d.anchorRow;
+    // Target cell derived from the anchor ghost's position (not the cursor):
+    // ghost top-left = anchor item's original cell + drag delta, rounded.
+    const cellW = d.gridRect.width / d.cols;
+    const cellH = d.gridRect.height / d.rows;
+    const anchorItem = this._items[d.anchorIdx];
+    const ghostLeft = (anchorItem.col * cellW) + dx;
+    const ghostTop = (anchorItem.row * cellH) + dy;
+    const anchorTargetCol = Math.round(ghostLeft / cellW);
+    const anchorTargetRow = Math.round(ghostTop / cellH);
+    // Ghost center for out-of-grid check (same as add-drag)
+    const anchorSize = getItemSize(anchorItem);
+    const centerCol = (ghostLeft + (anchorSize.cols * cellW) / 2) / cellW;
+    const centerRow = (ghostTop + (anchorSize.rows * cellH) / 2) / cellH;
 
     // Clear highlights
     this.shadowRoot.querySelectorAll('.grid-bg-cell.highlight').forEach(c => c.classList.remove('highlight', 'valid', 'invalid', 'swap'));
 
-    if (pointerCol >= 0 && pointerCol < d.cols && pointerRow >= 0 && pointerRow < d.rows) {
+    // Handle page-tab drag-hover (cross-page) during drag
+    this._handlePageTabHover(e);
+
+    if (centerCol >= 0 && centerCol < d.cols && centerRow >= 0 && centerRow < d.rows) {
       const items = this._items;
-      const item = items[d.itemIdx];
-      const size = getItemSize(item);
-      const page = items[d.itemIdx]?.page || 0;
-      let valid = this._canPlaceAt(items, d.itemIdx, size, row, col, d.cols, d.rows, undefined, page);
-      let swapPlacements = null;
+      const isMulti = d.dragItems.length > 1;
+      const targetPage = d.pageSwitched ? this._currentEditorPage : (items[d.anchorIdx]?.page || 0);
 
-      if (!valid) {
-        swapPlacements = this._canSwapWith(items, d.itemIdx, row, col, d.cols, d.rows, page);
-        if (swapPlacements) valid = true;
-      }
+      let valid: boolean;
+      let swapPlacements: { idx: number; row: number; col: number }[] | null = null;
 
-      // Highlight target cells
-      for (let r = row; r < Math.min(row + size.rows, d.rows); r++) {
-        for (let c = col; c < Math.min(col + size.cols, d.cols); c++) {
-          const cell = this.shadowRoot.querySelector(`.grid-bg-cell[data-row="${r}"][data-col="${c}"]`);
-          if (cell) cell.classList.add('highlight', valid ? 'valid' : 'invalid');
+      if (isMulti) {
+        valid = this._canPlaceGroup(items, d.dragItems, anchorTargetRow, anchorTargetCol, d.cols, d.rows, targetPage);
+      } else {
+        const item = items[d.anchorIdx];
+        const size = getItemSize(item);
+        valid = this._canPlaceAt(items, d.anchorIdx, size, anchorTargetRow, anchorTargetCol, d.cols, d.rows, undefined, targetPage);
+        if (!valid && !d.pageSwitched) {
+          swapPlacements = this._canSwapWith(items, d.anchorIdx, anchorTargetRow, anchorTargetCol, d.cols, d.rows, targetPage);
+          if (swapPlacements) valid = true;
         }
       }
-      // Highlight swap partner cells
+
+      // Highlight target cells for all dragged items
+      for (const di of d.dragItems) {
+        const it = items[di.idx];
+        const s = getItemSize(it);
+        const tr = anchorTargetRow + di.relRow;
+        const tc = anchorTargetCol + di.relCol;
+        for (let r = tr; r < Math.min(tr + s.rows, d.rows); r++) {
+          for (let c = tc; c < Math.min(tc + s.cols, d.cols); c++) {
+            if (r < 0 || c < 0) continue;
+            const cell = this.shadowRoot.querySelector(`.grid-bg-cell[data-row="${r}"][data-col="${c}"]`);
+            if (cell) cell.classList.add('highlight', valid ? 'valid' : 'invalid');
+          }
+        }
+      }
+      // Highlight swap partner cells (single-drag only)
       if (swapPlacements) {
         for (const p of swapPlacements) {
           const swapItem = items[p.idx];
@@ -1085,10 +1359,12 @@ export class GridRemoteCardEditor extends LitElement {
           }
         }
       }
-      d.targetRow = row;
-      d.targetCol = col;
+      d.targetRow = anchorTargetRow;
+      d.targetCol = anchorTargetCol;
       d.targetValid = valid;
       d.swapPlacements = swapPlacements;
+    } else {
+      d.targetValid = false;
     }
 
     // Check trash zone
@@ -1100,19 +1376,46 @@ export class GridRemoteCardEditor extends LitElement {
     }
   }
 
-  _onGridDragEnd(e: PointerEvent) {
+  _onGridDragEnd(_e: PointerEvent) {
     const d = this._gridDragState;
     if (!d) return;
-    d.el.style.transform = '';
-    d.el.classList.remove('dragging');
+    // Remove ghost clones
+    if (d.ghostLayer) d.ghostLayer.remove();
+    // Restore originals
+    for (const di of d.dragItems) {
+      if (di.el) {
+        di.el.classList.remove('dragging-source');
+      }
+    }
     this.shadowRoot.querySelectorAll('.grid-bg-cell.highlight').forEach(c => c.classList.remove('highlight', 'valid', 'invalid', 'swap'));
     if (d.trashEl) { d.trashEl.classList.remove('visible', 'hover'); }
+    this._clearPageTabHoverTimer();
+    this._clearPageTabDropTargets();
 
+    const committed = d.overTrash || (d.targetValid && d.targetRow != null);
     if (d.overTrash) {
-      this._deleteItem(d.itemIdx);
+      // Bulk delete all dragged items in one config update
+      const drop = new Set<number>(d.dragItems.map((x: any) => x.idx));
+      const items = this._items.filter((_, i) => !drop.has(i));
+      this._config = { ...this._config, items };
+      this._clearSelection();
+      this._fireConfigChanged();
     } else if (d.targetValid && d.targetRow != null) {
       const items = [...this._items];
-      items[d.itemIdx] = { ...items[d.itemIdx], row: d.targetRow, col: d.targetCol };
+      const targetPage = d.pageSwitched ? this._currentEditorPage : (items[d.anchorIdx]?.page || 0);
+      const multiPage = this._pageCount > 1;
+      // Update row/col + page for every dragged item
+      for (const di of d.dragItems) {
+        const tr = d.targetRow + di.relRow;
+        const tc = d.targetCol + di.relCol;
+        const updated: any = { ...items[di.idx], row: tr, col: tc };
+        if (multiPage) {
+          if (targetPage > 0) updated.page = targetPage;
+          else delete updated.page;
+        }
+        items[di.idx] = updated;
+      }
+      // Swap placements (single-drag only)
       if (d.swapPlacements) {
         for (const p of d.swapPlacements) {
           items[p.idx] = { ...items[p.idx], row: p.row, col: p.col };
@@ -1121,17 +1424,168 @@ export class GridRemoteCardEditor extends LitElement {
       this._config = { ...this._config, items };
       this._fireConfigChanged();
     }
+    // If no drop committed and new page(s) were auto-created via +Tab hover,
+    // revert those pages so the user doesn't end up with stray empty pages.
+    if (!committed && this._pageCount > d.originalPageCount) {
+      this._revertAutoCreatedPages(d.originalPageCount, d.originalCurrentPage);
+    }
     this._gridDragState = null;
+    // Force a re-render (same effect as ESC) without clearing the selection.
+    // Needed after cross-page drops where residual state otherwise blocks
+    // subsequent marquee interactions.
+    this._selectedIdx = new Set(this._selectedIdx);
   }
 
   _onGridDragCancel() {
     const d = this._gridDragState;
     if (!d) return;
-    d.el.style.transform = '';
-    d.el.classList.remove('dragging');
+    if (d.ghostLayer) d.ghostLayer.remove();
+    for (const di of d.dragItems) {
+      if (di.el) di.el.classList.remove('dragging-source');
+    }
     this.shadowRoot.querySelectorAll('.grid-bg-cell.highlight').forEach(c => c.classList.remove('highlight', 'valid', 'invalid', 'swap'));
     if (d.trashEl) { d.trashEl.classList.remove('visible', 'hover'); }
+    this._clearPageTabHoverTimer();
+    this._clearPageTabDropTargets();
+    if (this._pageCount > d.originalPageCount) {
+      this._revertAutoCreatedPages(d.originalPageCount, d.originalCurrentPage);
+    }
     this._gridDragState = null;
+  }
+
+  /** Revert pages that were auto-created via +Tab hover during a drag that
+   *  ended without a valid drop. Truncates page_count and restores the
+   *  originally-visible page. Dragged items themselves still have their
+   *  original `page` field (drop handler didn't run), so no item cleanup. */
+  _revertAutoCreatedPages(originalPageCount: number, originalCurrentPage: number) {
+    const config: any = { ...this._config };
+    if (originalPageCount <= 1) delete config.page_count;
+    else config.page_count = originalPageCount;
+    // Drop any page_conditions for pages we remove
+    if (Array.isArray(config.page_conditions) && config.page_conditions.length > originalPageCount) {
+      config.page_conditions = config.page_conditions.slice(0, originalPageCount);
+    }
+    this._config = config;
+    this._currentEditorPage = Math.min(originalCurrentPage, Math.max(originalPageCount - 1, 0));
+    this._fireConfigChanged();
+  }
+
+  /** Collision check for a group of items dragged together. Each item's
+   *  target = anchor target + its relative offset. Placement valid when:
+   *  - All targets in grid bounds
+   *  - No overlap with non-dragging items on targetPage
+   *  - No intra-group overlap (should not happen with preserved offsets) */
+  _canPlaceGroup(
+    items: Item[], dragItems: any[],
+    anchorRow: number, anchorCol: number, cols: number, rows: number, targetPage: number,
+  ): boolean {
+    const dragIdxs = new Set(dragItems.map(d => d.idx));
+    const cells = new Set<string>();
+    for (const di of dragItems) {
+      const it = items[di.idx];
+      const s = getItemSize(it);
+      const tr = anchorRow + di.relRow;
+      const tc = anchorCol + di.relCol;
+      if (tr < 0 || tc < 0 || tr + s.rows > rows || tc + s.cols > cols) return false;
+      for (let r = tr; r < tr + s.rows; r++) {
+        for (let c = tc; c < tc + s.cols; c++) {
+          const key = `${r},${c}`;
+          if (cells.has(key)) return false; // intra-group overlap
+          cells.add(key);
+        }
+      }
+    }
+    // Check against non-dragging items on target page
+    for (let i = 0; i < items.length; i++) {
+      if (dragIdxs.has(i)) continue;
+      const other = items[i];
+      if ((other.page || 0) !== targetPage) continue;
+      const os = getItemSize(other);
+      for (let r = other.row; r < other.row + os.rows; r++) {
+        for (let c = other.col; c < other.col + os.cols; c++) {
+          if (cells.has(`${r},${c}`)) return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  // -- Cross-page drag via page-tab hover -------------------------------------
+
+  _pageTabHoverTimer: ReturnType<typeof setTimeout> | null = null;
+  _pageTabHoverTarget: number | null = null;
+
+  _handlePageTabHover(e: PointerEvent) {
+    const tabs = this.shadowRoot?.querySelectorAll('.page-tab:not(.page-tab-add)') as NodeListOf<HTMLElement> | undefined;
+    const addTab = this.shadowRoot?.querySelector('.page-tab-add') as HTMLElement | null;
+    if (!tabs) return;
+    let overIdx: number | null = null;
+    let overAdd = false;
+    for (let i = 0; i < tabs.length; i++) {
+      const r = tabs[i].getBoundingClientRect();
+      if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) {
+        overIdx = i;
+        break;
+      }
+    }
+    if (overIdx == null && addTab) {
+      const r = addTab.getBoundingClientRect();
+      overAdd = e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
+    }
+    // Mark visually which tab is being hovered
+    tabs.forEach((t, i) => t.classList.toggle('drop-target', i === overIdx && i !== this._currentEditorPage));
+    if (addTab) addTab.classList.toggle('drop-target', overAdd);
+
+    // Use sentinel -1 for the +add tab
+    const effectiveTarget: number | null = overAdd ? -1 : overIdx;
+    if (effectiveTarget === this._pageTabHoverTarget) return;
+    this._clearPageTabHoverTimer();
+    this._pageTabHoverTarget = effectiveTarget;
+    if (effectiveTarget === -1) {
+      this._pageTabHoverTimer = setTimeout(() => this._createAndSwitchPageDuringDrag(), 400);
+    } else if (effectiveTarget != null && effectiveTarget !== this._currentEditorPage) {
+      this._pageTabHoverTimer = setTimeout(() => this._switchPageDuringDrag(effectiveTarget), 400);
+    }
+  }
+
+  _clearPageTabHoverTimer() {
+    if (this._pageTabHoverTimer) {
+      clearTimeout(this._pageTabHoverTimer);
+      this._pageTabHoverTimer = null;
+    }
+    this._pageTabHoverTarget = null;
+  }
+
+  _clearPageTabDropTargets() {
+    const tabs = this.shadowRoot?.querySelectorAll('.page-tab:not(.page-tab-add)') as NodeListOf<HTMLElement> | undefined;
+    tabs?.forEach(t => t.classList.remove('drop-target'));
+    const addTab = this.shadowRoot?.querySelector('.page-tab-add') as HTMLElement | null;
+    addTab?.classList.remove('drop-target');
+  }
+
+  async _createAndSwitchPageDuringDrag() {
+    const d = this._gridDragState;
+    if (!d) return;
+    const newPageIdx = this._pageCount;
+    this._config = { ...this._config, page_count: newPageIdx + 1 };
+    this._fireConfigChanged();
+    await this._switchPageDuringDrag(newPageIdx);
+  }
+
+  async _switchPageDuringDrag(targetPage: number) {
+    const d = this._gridDragState;
+    if (!d) return;
+    d.pageSwitched = true;
+    this._currentEditorPage = targetPage;
+    // After re-render, the dragged items are not on the visible page, so
+    // their DOM elements get removed. Clear el refs so we stop trying to
+    // transform stale nodes. Drag continues via document-level pointer
+    // events; the drop commits the page change to all dragged items.
+    await this.updateComplete;
+    for (const di of d.dragItems) di.el = null;
+    // Update gridRect for collision checks on new page
+    const gridEl = this.shadowRoot?.querySelector('.tab-panel.active .grid-editor') as HTMLElement | null;
+    if (gridEl) d.gridRect = gridEl.getBoundingClientRect();
   }
 
   // -- Drag-to-add from add-item-bar ------------------------------------------
@@ -1172,7 +1626,7 @@ export class GridRemoteCardEditor extends LitElement {
     const size = ITEMS[type].cls.defaultSize;
     const cellW = gridRect.width / cols;
     const cellH = gridRect.height / rows;
-    const touchOffsetY = isTouch ? cellH * size.rows + 20 : 0;
+    const touchOffsetY = isTouch ? cellH + 20 : 0;
 
     // Create ghost element
     const ghost = document.createElement('div');
@@ -1254,7 +1708,7 @@ export class GridRemoteCardEditor extends LitElement {
       const page = this._pageCount > 1 ? this._currentEditorPage : 0;
       if (page > 0) newItem.page = page;
       items.push(newItem);
-      this._openItemIdx = items.length - 1;
+      this._selectOnly(items.length - 1, true);
       this._config = { ...this._config, items };
       this._fireConfigChanged();
     }
@@ -1386,7 +1840,7 @@ export class GridRemoteCardEditor extends LitElement {
           if (ITEMS[type].cls.defaultIcon) newItem.icon = ITEMS[type].cls.defaultIcon;
           if (page > 0) newItem.page = page;
           items.push(newItem);
-          this._openItemIdx = items.length - 1;
+          this._selectOnly(items.length - 1, true);
           this._config = { ...this._config, items };
           this._fireConfigChanged();
           return;
@@ -1397,8 +1851,16 @@ export class GridRemoteCardEditor extends LitElement {
 
   _deleteItem(idx: number) {
     const items = this._items.filter((_, i) => i !== idx);
+    // Adjust open item pointer
     if (this._openItemIdx === idx) this._openItemIdx = null;
     else if (this._openItemIdx != null && this._openItemIdx > idx) this._openItemIdx--;
+    // Adjust multi-select indices (remove deleted, shift higher ones down)
+    const nextSel = new Set<number>();
+    for (const i of this._selectedIdx) {
+      if (i === idx) continue;
+      nextSel.add(i > idx ? i - 1 : i);
+    }
+    this._selectedIdx = nextSel;
     this._config = { ...this._config, items };
     this._fireConfigChanged();
   }
@@ -1417,7 +1879,7 @@ export class GridRemoteCardEditor extends LitElement {
           dismissText: t(this.hass, 'Cancel'),
           destructive: true,
           confirm: () => {
-            this._openItemIdx = null;
+            this._clearSelection();
             const page = this._currentEditorPage;
             const items = this._pageCount > 1
               ? this._items.filter(item => (item.page || 0) !== page)

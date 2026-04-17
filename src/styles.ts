@@ -439,7 +439,10 @@ export const editorStyles = css`
     border-radius: 8px;
     cursor: grab;
     user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
     -webkit-tap-highlight-color: transparent;
+    touch-action: none;
     z-index: 1;
     color: var(--primary-text-color);
   }
@@ -447,10 +450,36 @@ export const editorStyles = css`
     border-color: var(--primary-color);
     box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary-color) 30%, transparent);
   }
+  .grid-editor-item.multi-selected {
+    border-color: var(--primary-color);
+    background: color-mix(in srgb, var(--primary-color) 20%, transparent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary-color) 40%, transparent);
+  }
   .grid-editor-item.dragging {
     opacity: 0.7;
     cursor: grabbing;
     z-index: 10;
+  }
+  .grid-editor-item.dragging-source {
+    opacity: 0.3;
+  }
+  .drag-ghost-layer {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 100;
+  }
+  .drag-ghost {
+    opacity: 0.85;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.35);
+    transition: none;
+  }
+  .marquee {
+    position: absolute;
+    border: 1px dashed var(--primary-color);
+    background: color-mix(in srgb, var(--primary-color) 10%, transparent);
+    pointer-events: none;
+    z-index: 5;
   }
   .grid-editor-item.type-dpad { border-radius: 50%; }
   .grid-editor-item.type-color_buttons { border-radius: 6px; }
@@ -780,6 +809,11 @@ export const editorStyles = css`
   }
   .page-tab:hover:not(.active) {
     background: color-mix(in srgb, var(--primary-text-color) 14%, transparent);
+  }
+  .page-tab.drop-target {
+    outline: 2px dashed var(--primary-color);
+    outline-offset: 2px;
+    background: color-mix(in srgb, var(--primary-color) 30%, transparent);
   }
   .page-tab-add {
     font-size: 16px;
