@@ -175,6 +175,7 @@ export function getActiveSourceName(card: GridRemoteCard, itemIndex: number | nu
 export function openSourcePopup(card: GridRemoteCard, itemIndex: number, anchorEl: HTMLElement): void {
   card._sourcePopupItemIdx = itemIndex;
   card._sourcePopupOpen = true;
+  card._popupAnchorEl = anchorEl;
   card._addPopupOutsideListener();
   card.updateComplete.then(() => {
     const menu = card.shadowRoot?.getElementById('source-popup-menu') as HTMLElement | null;
@@ -208,6 +209,7 @@ export function openSourcePopup(card: GridRemoteCard, itemIndex: number, anchorE
 export function closeSourcePopup(card: GridRemoteCard): void {
   if (card._sourcePopupOpen) {
     card._sourcePopupOpen = false;
+    card._popupAnchorEl = null;
     card._removePopupOutsideListener();
   }
 }
@@ -242,7 +244,7 @@ export function renderSourcePopup(card: GridRemoteCard): TemplateResult | '' {
   const sources = getResolvedSources(card, itemIdx);
   const activeName = getActiveSourceName(card, itemIdx);
   return html`
-    <div class="popup-overlay" @click=${() => closeSourcePopup(card)}></div>
+    <div class="popup-overlay"></div>
     <div class="popup-menu" id="source-popup-menu">
       ${sources.length === 0
         ? html`<div class="source-empty">${t(card.hass, 'No sources configured')}</div>`

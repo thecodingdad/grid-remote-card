@@ -32,6 +32,9 @@ export const remoteBtnStyles = css`
     border-radius: var(--grc-variant-radius, 50%);
     background: var(--grc-btn-bg, var(--grc-item-bg));
     -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    user-select: none;
+    touch-action: manipulation;
     margin: 0 auto;
   }
 

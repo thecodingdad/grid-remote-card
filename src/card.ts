@@ -56,6 +56,7 @@ export class GridRemoteCard extends LitElement {
   _sourcePopupOpen = false;
   _numpadPopupOpen = false;
   _sourcePopupItemIdx: number | null = null;
+  _popupAnchorEl: HTMLElement | null = null;
   _numpadPopupItemIdx: number | null = null;
   _currentPage = 0;
 
@@ -101,10 +102,23 @@ export class GridRemoteCard extends LitElement {
   }
 
   private _onOpenSourcePopup = (e: CustomEvent<OpenSourcePopupDetail>): void => {
+    // Toggle: if the same popup is already open, close it instead of re-opening
+    if (this._sourcePopupOpen && this._sourcePopupItemIdx === e.detail.itemIndex) {
+      this._sourcePopupOpen = false;
+      this._popupAnchorEl = null;
+      this._removePopupOutsideListener();
+      return;
+    }
     openSourcePopup(this, e.detail.itemIndex, e.detail.anchorEl);
   };
 
   private _onOpenNumpadPopup = (e: CustomEvent<OpenNumpadPopupDetail>): void => {
+    if (this._numpadPopupOpen && this._numpadPopupItemIdx === e.detail.itemIndex) {
+      this._numpadPopupOpen = false;
+      this._popupAnchorEl = null;
+      this._removePopupOutsideListener();
+      return;
+    }
     openNumpadPopup(this, e.detail.itemIndex, e.detail.anchorEl);
   };
 
@@ -356,6 +370,13 @@ export class GridRemoteCard extends LitElement {
         this._currentPage = 0;
       }
     }
+    // Close open popups when the current page changes (swipe, dot click, conditions)
+    if (changedProps.has('_currentPage')) {
+      if (this._sourcePopupOpen) this._sourcePopupOpen = false;
+      if (this._numpadPopupOpen) this._numpadPopupOpen = false;
+      this._popupAnchorEl = null;
+      this._removePopupOutsideListener();
+    }
     if (changedProps.has('hass') && this.hass && !this._isEditorPreview) {
       const conds = this._config?.page_conditions;
       const hasAnyCondition = conds?.some((c: any) => Array.isArray(c) && c.length > 0);
@@ -434,15 +455,16 @@ export class GridRemoteCard extends LitElement {
   // -- Popup outside-click listener ------------------------------------------
 
   private _onWindowPointerDown = (e: PointerEvent): void => {
-    if (!e.composedPath().includes(this)) {
-      if (this._sourcePopupOpen) {
-        this._sourcePopupOpen = false;
-      }
-      if (this._numpadPopupOpen) {
-        this._numpadPopupOpen = false;
-      }
-      this._removePopupOutsideListener();
-    }
+    const path = e.composedPath();
+    // Skip if pointerdown is on the popup-menu itself (its internal items handle own clicks)
+    if (path.some((el: any) => el.classList?.contains?.('popup-menu'))) return;
+    // Skip if pointerdown is on the anchor that opened the popup — the
+    // anchor's own tap toggles the popup closed, avoiding the close→reopen bounce.
+    if (this._popupAnchorEl && path.includes(this._popupAnchorEl)) return;
+    if (this._sourcePopupOpen) this._sourcePopupOpen = false;
+    if (this._numpadPopupOpen) this._numpadPopupOpen = false;
+    this._popupAnchorEl = null;
+    this._removePopupOutsideListener();
   };
 
   _addPopupOutsideListener(): void {

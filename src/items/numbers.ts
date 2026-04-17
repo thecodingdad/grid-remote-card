@@ -116,6 +116,7 @@ export class NumbersItem extends ItemBase {
 export function openNumpadPopup(card: GridRemoteCard, itemIndex: number, anchorEl: HTMLElement): void {
   card._numpadPopupItemIdx = itemIndex;
   card._numpadPopupOpen = true;
+  card._popupAnchorEl = anchorEl;
   card._addPopupOutsideListener();
   card.updateComplete.then(() => {
     const menu = card.shadowRoot?.getElementById('numpad-popup-menu') as HTMLElement | null;
@@ -154,6 +155,7 @@ export function openNumpadPopup(card: GridRemoteCard, itemIndex: number, anchorE
 export function closeNumpadPopup(card: GridRemoteCard): void {
   if (card._numpadPopupOpen) {
     card._numpadPopupOpen = false;
+    card._popupAnchorEl = null;
     card._removePopupOutsideListener();
   }
 }
@@ -177,7 +179,7 @@ export function renderNumpadPopup(card: GridRemoteCard): TemplateResult | '' {
   const hideDash = item?.hide_dash ?? false;
   const hideEnter = item?.hide_enter ?? false;
   return html`
-    <div class="popup-overlay" @click=${() => closeNumpadPopup(card)}></div>
+    <div class="popup-overlay"></div>
     <div class="popup-menu numpad-popup" id="numpad-popup-menu">
       <div class="numpad-grid">
         ${NUMPAD_KEYS.map((key) => {
