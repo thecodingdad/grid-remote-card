@@ -110,7 +110,7 @@ export const btnTextStyles = css`
   .btn-text {
     font-size: 12px;
     font-weight: 600;
-    color: var(--primary-text-color);
+    color: var(--grc-item-text, var(--primary-text-color));
     position: relative;
     z-index: 1;
     font-family: var(--mdc-typography-font-family, Roboto, sans-serif);

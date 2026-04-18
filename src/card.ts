@@ -314,24 +314,38 @@ export class GridRemoteCard extends LitElement {
     const multiPageWidth = !stretch
       ? `width:calc(${cols} * var(--grid-cell-width) + ${cols - 1} * var(--grid-gap) + 2 * var(--remote-padding) + 2 * var(--ha-card-border-width, 1px));`
       : '';
-    const cardBg = resolveColor(this._config.card_background_color || '');
-    // Expose card bg via custom property so descendants (e.g. DPad center btn)
-    // can use it as fallback. Per-item overrides still take precedence.
-    const cardBgStyle = cardBg ? `background:${cardBg};--grc-card-bg:${cardBg};` : '';
-    const btnBg = resolveColor(this._config.button_background_color || '');
-    const btnBgStyle = btnBg ? `--grc-item-bg:${btnBg};` : '';
-    const borderColor = resolveColor(this._config.remote_border_color || '');
-    const borderStyle = borderColor
-      ? `border-color:${borderColor};--grc-remote-border:${borderColor};`
-      : '';
-    const cardStyle = `${sizeStyle}${zoomStyle}${multiPageWidth}${cardBgStyle}${btnBgStyle}${borderStyle}`;
-    const style3d = this._config.ui_style === '3d';
+    // Built-in defaults applied when no config value is set. Kept here
+    // instead of getStubConfig so existing cards and YAML configs pick
+    // them up automatically without carrying them in the persisted config.
+    const cardBg = resolveColor(this._config.card_background_color || '#333');
+    const iconColor = resolveColor(this._config.icon_color || '#fff');
+    const textColor = resolveColor(this._config.text_color || '#fff');
+    const btnBg = resolveColor(this._config.button_background_color || '#606060');
+    const borderColor = resolveColor(this._config.remote_border_color || '#777');
+    const cardBgStyle = `background:${cardBg};--grc-card-bg:${cardBg};`;
+    const btnBgStyle = `--grc-item-bg:${btnBg};`;
+    const iconStyle = `--grc-item-icon:${iconColor};`;
+    const textStyle = `--grc-item-text:${textColor};`;
+    const borderStyle = `border-color:${borderColor};--grc-remote-border:${borderColor};`;
+    const cardStyle = `${sizeStyle}${zoomStyle}${multiPageWidth}${cardBgStyle}${btnBgStyle}${iconStyle}${textStyle}${borderStyle}`;
+    // Default UI style is 3D — an explicit `ui_style: flat` opts out.
+    const style3d = (this._config.ui_style ?? '3d') !== 'flat';
     const cardClass = style3d ? 'style-3d' : '';
+
+    // An empty grid would otherwise collapse to 0×0, so force at least
+    // one invisible placeholder cell that pins the grid to the expected
+    // columns × rows footprint (important for the card-picker preview
+    // and for newly-added cards before any item is configured).
+    const emptyGrid = this._items.length === 0;
+    const placeholder = emptyGrid
+      ? html`<div class="grid-item" style="grid-column:1;grid-row:1;visibility:hidden;"></div>`
+      : '';
 
     if (!multiPage) {
       return html`
         <ha-card class="${cardClass}" style="${cardStyle}">
           <div class="remote-grid" style="${gridStyle}">
+            ${placeholder}
             ${this._items.map((item, i) => this._renderItem(item, i))}
           </div>
           ${this._renderPopup()}
@@ -349,8 +363,12 @@ export class GridRemoteCard extends LitElement {
     const pages: TemplateResult[] = [];
     for (let p = 0; p < this._pageCount; p++) {
       const items = this._items.map((item, i): [Item, number] => [item, i]).filter(([item]) => (item.page || 0) === p);
+      const pagePlaceholder = items.length === 0
+        ? html`<div class="grid-item" style="grid-column:1 / span ${cols};grid-row:1 / span ${rows};visibility:hidden;"></div>`
+        : '';
       pages.push(html`
         <div class="remote-grid" style="${gridStyle}">
+          ${pagePlaceholder}
           ${items.map(([item, i]) => this._renderItem(item, i))}
         </div>
       `);
