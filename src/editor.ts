@@ -343,9 +343,6 @@ export class GridRemoteCardEditor extends LitElement {
           <ha-icon icon="mdi:delete-sweep-outline" style="--mdc-icon-size:20px;"></ha-icon>
         </button>
       </div>
-      <div class="drag-trash-zone">
-        <ha-icon icon="mdi:delete-outline" style="--mdc-icon-size:20px;"></ha-icon>
-      </div>
       <div class="add-item-bar">
         <span class="add-item-label">${t(this.hass, 'Add:')}</span>
         ${ITEM_TYPES.map(type => html`
@@ -1179,8 +1176,8 @@ export class GridRemoteCardEditor extends LitElement {
     const isTouch = e.pointerType === 'touch';
     const touchOffsetY = isTouch ? cellH + 20 : 0;
 
-    const trashEl = this.shadowRoot?.querySelector('.drag-trash-zone') as HTMLElement | null;
-    if (trashEl) trashEl.classList.add('visible');
+    const trashEl = this.shadowRoot?.querySelector('.clear-all-btn') as HTMLElement | null;
+    if (trashEl) trashEl.classList.add('drop-target-active');
 
     // Determine drag group: if the grabbed item is in the multi-selection,
     // drag ALL selected items together. Otherwise drag just this one and
@@ -1388,7 +1385,7 @@ export class GridRemoteCardEditor extends LitElement {
       }
     }
     this.shadowRoot.querySelectorAll('.grid-bg-cell.highlight').forEach(c => c.classList.remove('highlight', 'valid', 'invalid', 'swap'));
-    if (d.trashEl) { d.trashEl.classList.remove('visible', 'hover'); }
+    if (d.trashEl) { d.trashEl.classList.remove('drop-target-active', 'hover'); }
     this._clearPageTabHoverTimer();
     this._clearPageTabDropTargets();
 
@@ -1444,7 +1441,7 @@ export class GridRemoteCardEditor extends LitElement {
       if (di.el) di.el.classList.remove('dragging-source');
     }
     this.shadowRoot.querySelectorAll('.grid-bg-cell.highlight').forEach(c => c.classList.remove('highlight', 'valid', 'invalid', 'swap'));
-    if (d.trashEl) { d.trashEl.classList.remove('visible', 'hover'); }
+    if (d.trashEl) { d.trashEl.classList.remove('drop-target-active', 'hover'); }
     this._clearPageTabHoverTimer();
     this._clearPageTabDropTargets();
     if (this._pageCount > d.originalPageCount) {

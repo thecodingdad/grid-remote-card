@@ -516,23 +516,6 @@ export const editorStyles = css`
   }
   .grid-editor-item:hover .grid-item-delete { opacity: 1; }
 
-  .drag-trash-zone {
-    display: none;
-    align-items: center;
-    justify-content: center;
-    height: 40px;
-    margin-top: 6px;
-    border: 2px dashed var(--error-color, #f44336);
-    border-radius: 8px;
-    color: var(--error-color, #f44336);
-    opacity: 0.6;
-    transition: opacity 0.15s, background 0.15s;
-  }
-  .drag-trash-zone.visible { display: flex; }
-  .drag-trash-zone.hover {
-    opacity: 1;
-    background: color-mix(in srgb, var(--error-color, #f44336) 15%, transparent);
-  }
   .clear-all-btn {
     position: absolute;
     top: 4px;
@@ -548,9 +531,20 @@ export const editorStyles = css`
     align-items: center;
     justify-content: center;
     opacity: 0.6;
-    transition: opacity 0.15s;
+    transform-origin: top right;
+    transition: opacity 0.15s, transform 0.15s, border-color 0.15s, background 0.15s;
   }
   .clear-all-btn:hover { opacity: 1; }
+  .clear-all-btn.drop-target-active {
+    opacity: 1;
+    transform: scale(1.6);
+    border-color: var(--error-color, #f44336);
+  }
+  .clear-all-btn.drop-target-active ha-icon { --mdc-icon-size: 22px; }
+  .clear-all-btn.hover {
+    background: color-mix(in srgb, var(--error-color, #f44336) 25%, transparent);
+    transform: scale(1.8);
+  }
   .preset-bar {
     display: flex;
     align-items: center;
