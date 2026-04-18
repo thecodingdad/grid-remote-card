@@ -12,13 +12,14 @@
 
 import { css, html, type PropertyValues, type TemplateResult } from 'lit';
 import { customElement } from 'lit/decorators.js';
+import type { GridRemoteCard } from '../card';
 import type { GridRemoteCardEditor } from '../editor';
 import type { Item, ItemSize } from '../types';
 import { resolveColor } from '../helpers';
 import { t } from '../i18n';
-import { ItemBase } from './base';
+import { ItemBase, OPEN_POPUP_EVENT, type OpenPopupDetail } from './base';
 import { rippleStyles } from './shared-styles';
-import { OPEN_SOURCE_POPUP_EVENT, type OpenSourcePopupDetail, renderSourcePopupConfig } from './source';
+import { renderSourceListContent, renderSourcePopupConfig } from './source';
 
 const SCHEMA_MEDIA_ENTITY = [
   { name: 'entity_id', selector: { entity: { include_domains: ['media_player'] } } },
@@ -136,12 +137,17 @@ export class MediaItem extends ItemBase {
     if (actionType !== 'tap') return false;
     const ta = this.item.tap_action as any;
     if (ta && ta.action && ta.action !== 'none') return false;
-    this.dispatchEvent(new CustomEvent<OpenSourcePopupDetail>(OPEN_SOURCE_POPUP_EVENT, {
+    this.dispatchEvent(new CustomEvent<OpenPopupDetail>(OPEN_POPUP_EVENT, {
       detail: { itemIndex: this.index, anchorEl },
       bubbles: true,
       composed: true,
     }));
     return true;
+  }
+
+  /** Share the source list popup — tap on media tile opens the source list. */
+  static override renderPopup(card: GridRemoteCard, itemIndex: number): TemplateResult | '' {
+    return renderSourceListContent(card, itemIndex);
   }
 
   protected override render(): TemplateResult {

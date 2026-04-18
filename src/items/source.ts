@@ -1,13 +1,12 @@
 /**
  * SourceItem — a button that opens a popup with a list of sources
- * (media player sources or `select` options). The popup is rendered
- * in the parent card's shadow DOM (via `renderSourcePopup(card)`)
- * because overlays would be clipped if they lived in the item's own
- * shadow DOM.
+ * (media player sources or `select` options). Popup content is
+ * provided via `static renderPopup()`; the card owns the single
+ * popup slot and renders it in its shadow DOM (overlays would be
+ * clipped if they lived in the item's own shadow DOM).
  *
- * Source-Item opens the popup by dispatching a custom event that the
- * card listens for in its `connectedCallback`. Media tiles reuse the
- * same mechanism, so source resolution/rendering is shared here.
+ * Media tiles reuse `renderSourceListContent()` so the source list
+ * rendering stays in one place.
  */
 
 import { css, html, type TemplateResult } from 'lit';
@@ -18,20 +17,13 @@ import type { Item } from '../types';
 import { VARIANT_CSS_CLASS } from '../constants';
 import { resolveColor } from '../helpers';
 import { t } from '../i18n';
-import { ItemBase } from './base';
+import { ItemBase, OPEN_POPUP_EVENT, type OpenPopupDetail } from './base';
 import {
   btnTextStyles,
   remoteBtnStyles,
   rippleStyles,
   variantRadiusStyles,
 } from './shared-styles';
-
-export const OPEN_SOURCE_POPUP_EVENT = 'grc-open-source-popup';
-
-export interface OpenSourcePopupDetail {
-  itemIndex: number;
-  anchorEl: HTMLElement;
-}
 
 const SCHEMA_SOURCE_ENTITY = [
   { name: 'source_entity', selector: { entity: { include_domains: ['select', 'media_player'] } } },
@@ -65,12 +57,16 @@ export class SourceItem extends ItemBase {
     if (actionType !== 'tap') return false;
     const ta = this.item.tap_action as any;
     if (ta && ta.action && ta.action !== 'none') return false;
-    this.dispatchEvent(new CustomEvent<OpenSourcePopupDetail>(OPEN_SOURCE_POPUP_EVENT, {
+    this.dispatchEvent(new CustomEvent<OpenPopupDetail>(OPEN_POPUP_EVENT, {
       detail: { itemIndex: this.index, anchorEl },
       bubbles: true,
       composed: true,
     }));
     return true;
+  }
+
+  static override renderPopup(card: GridRemoteCard, itemIndex: number): TemplateResult | '' {
+    return renderSourceListContent(card, itemIndex);
   }
 
   protected override render(): TemplateResult {
@@ -172,50 +168,8 @@ export function getActiveSourceName(card: GridRemoteCard, itemIndex: number | nu
   return null;
 }
 
-export function openSourcePopup(card: GridRemoteCard, itemIndex: number, anchorEl: HTMLElement): void {
-  card._sourcePopupItemIdx = itemIndex;
-  card._sourcePopupOpen = true;
-  card._popupAnchorEl = anchorEl;
-  card._addPopupOutsideListener();
-  card.updateComplete.then(() => {
-    const menu = card.shadowRoot?.getElementById('source-popup-menu') as HTMLElement | null;
-    if (!menu || !anchorEl) return;
-    const container = card.shadowRoot?.querySelector('.remote-grid');
-    if (!container) return;
-    const scale = (card._config.scale || 100) / 100;
-    const containerRect = container.getBoundingClientRect();
-    const anchorRect = anchorEl.getBoundingClientRect();
-    const menuRect = menu.getBoundingClientRect();
-    let top = (anchorRect.bottom - containerRect.top) / scale + 8;
-    if (top + menuRect.height / scale > containerRect.height / scale) {
-      top = (anchorRect.top - containerRect.top) / scale - menuRect.height / scale - 8;
-      if (top < 0) top = 0;
-    }
-    menu.style.setProperty('--grc-popup-top', `${top}px`);
-    menu.style.top = `${top}px`;
-    const cw = containerRect.width / scale;
-    const mw = menuRect.width / scale;
-    let left: number;
-    if (mw > cw) {
-      left = (cw - mw) / 2;
-    } else {
-      left = (anchorRect.left + anchorRect.width / 2 - containerRect.left) / scale - mw / 2;
-      left = Math.max(0, Math.min(left, cw - mw));
-    }
-    menu.style.left = `${left}px`;
-  });
-}
-
-export function closeSourcePopup(card: GridRemoteCard): void {
-  if (card._sourcePopupOpen) {
-    card._sourcePopupOpen = false;
-    card._popupAnchorEl = null;
-    card._removePopupOutsideListener();
-  }
-}
-
 function handleSourceTap(card: GridRemoteCard, source: any): void {
-  closeSourcePopup(card);
+  card._closePopup();
   if (!source.tap_action || source.tap_action.action === 'none') return;
   if (card._config.haptic_tap) {
     try { navigator.vibrate?.(50); } catch (_) { /* noop */ }
@@ -236,21 +190,14 @@ function renderPopupMenuItem(card: GridRemoteCard, source: any, isActive: boolea
   `;
 }
 
-/** Main entry called by the card's render() to render the source popup
- *  overlay. Returns an empty string when the popup is closed. */
-export function renderSourcePopup(card: GridRemoteCard): TemplateResult | '' {
-  if (!card._sourcePopupOpen) return '';
-  const itemIdx = card._sourcePopupItemIdx;
-  const sources = getResolvedSources(card, itemIdx);
-  const activeName = getActiveSourceName(card, itemIdx);
-  return html`
-    <div class="popup-overlay"></div>
-    <div class="popup-menu" id="source-popup-menu">
-      ${sources.length === 0
-        ? html`<div class="source-empty">${t(card.hass, 'No sources configured')}</div>`
-        : sources.map((s) => renderPopupMenuItem(card, s, s.name === activeName))}
-    </div>
-  `;
+/** Popup content for source lists — used by SourceItem and MediaItem. */
+export function renderSourceListContent(card: GridRemoteCard, itemIndex: number): TemplateResult {
+  const sources = getResolvedSources(card, itemIndex);
+  const activeName = getActiveSourceName(card, itemIndex);
+  if (sources.length === 0) {
+    return html`<div class="source-empty">${t(card.hass, 'No sources configured')}</div>`;
+  }
+  return html`${sources.map((s) => renderPopupMenuItem(card, s, s.name === activeName))}`;
 }
 
 // -- Editor ------------------------------------------------------------------

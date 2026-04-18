@@ -151,9 +151,8 @@ export class DpadItem extends ItemBase {
         height: var(--grc-dpad-center-size);
         border-radius: 50%;
         z-index: 3;
-        background: var(--grc-btn-bg, var(--card-background-color, var(--ha-card-background, #1c1c1c)));
+        background: var(--grc-btn-bg, var(--grc-card-bg, var(--card-background-color, var(--ha-card-background, #1c1c1c))));
         border: 2px solid color-mix(in srgb, var(--primary-text-color) 12%, transparent);
-        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
       }
     `,
   ];

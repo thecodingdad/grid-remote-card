@@ -10,11 +10,17 @@
  * for special tap behaviour (source/numbers/media/entity overrides).
  */
 
-import { LitElement } from 'lit';
+import { LitElement, type TemplateResult } from 'lit';
 import { property } from 'lit/decorators.js';
 import type { GridRemoteCard } from '../card';
 import type { GridRemoteCardConfig, HomeAssistant, Item, ItemSize } from '../types';
 import { DEFAULT_REPEAT_INTERVAL_MS, HOLD_DELAY_MS } from '../constants';
+
+/** Event fired by an item to request its popup be opened by the card.
+ *  The card looks up the item's `static renderPopup()` via the ITEMS
+ *  registry to build the popup content. */
+export const OPEN_POPUP_EVENT = 'grc-open-popup';
+export interface OpenPopupDetail { itemIndex: number; anchorEl: HTMLElement; }
 
 interface PointerState {
   holdTimer: ReturnType<typeof setTimeout> | null;
@@ -122,6 +128,11 @@ export abstract class ItemBase extends LitElement {
   ): boolean {
     return false;
   }
+
+  /** Optional: subclasses implement to provide popup content. The card's
+   *  generic popup slot calls this for the currently-open item. Helper
+   *  for `handleItemAction` to dispatch `OPEN_POPUP_EVENT`. */
+  static renderPopup?(_card: GridRemoteCard, _itemIndex: number): TemplateResult | '';
 
   // -- Pointer event state machine -----------------------------------------
 

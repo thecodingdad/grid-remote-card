@@ -51,9 +51,12 @@ export const remoteBtnStyles = css`
   }
 
   .remote-btn:hover {
-    background: var(--grc-item-bg-hover);
+    background: color-mix(in srgb, var(--primary-text-color) 10%, var(--grc-btn-bg, var(--grc-item-bg)));
   }
-  .remote-btn:active { filter: var(--grc-item-press-filter); }
+  .remote-btn:active {
+    background: color-mix(in srgb, var(--primary-text-color) 18%, var(--grc-btn-bg, var(--grc-item-bg)));
+    filter: var(--grc-item-press-filter);
+  }
 `;
 
 /** Variant radius tokens — set `--grc-variant-radius` based on the

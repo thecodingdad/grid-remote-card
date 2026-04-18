@@ -31,6 +31,7 @@ export const cardStyles = css`
     padding: var(--remote-padding);
     overflow: visible;
     box-sizing: border-box;
+    position: relative;
   }
 
   .remote-grid {
@@ -75,9 +76,9 @@ export const cardStyles = css`
     border-style: solid;
     border-color: var(--ha-card-border-color, var(--divider-color, #e0e0e0));
     box-shadow: 0 4px 16px rgba(0,0,0,0.22);
-    padding: 8px 0;
+    padding: 8px;
     min-width: 140px;
-    max-height: calc(100% - var(--grc-popup-top, 0px) - 8px);
+    max-height: 80vh;
     overflow-x: hidden;
     overflow-y: auto;
     animation: grc-popup-in 0.15s ease-out;
@@ -101,7 +102,7 @@ export const cardStyles = css`
     -webkit-tap-highlight-color: transparent;
   }
   .popup-item:hover, .popup-item:focus-visible {
-    background: color-mix(in srgb, var(--primary-text-color) 10%, transparent);
+    background: color-mix(in srgb, var(--primary-text-color) 10%, var(--grc-item-bg));
   }
   .popup-item:active { opacity: 0.7; }
   .popup-item.active {
@@ -113,7 +114,7 @@ export const cardStyles = css`
   }
   .popup-item ha-icon {
     --mdc-icon-size: 22px;
-    color: var(--secondary-text-color);
+    color: var(--grc-popup-icon-color, var(--secondary-text-color));
     flex-shrink: 0;
   }
   .popup-item.active ha-icon { color: var(--primary-color); }
@@ -132,7 +133,7 @@ export const cardStyles = css`
   }
   .popup-item-label {
     font-size: 14px;
-    color: var(--primary-text-color);
+    color: var(--grc-popup-text-color, var(--primary-text-color));
     font-family: var(--mdc-typography-font-family, Roboto, sans-serif);
     white-space: nowrap;
     overflow: hidden;
@@ -174,10 +175,10 @@ export const cardStyles = css`
     overflow: hidden;
   }
   .numpad-btn:hover {
-    background: var(--grc-item-bg-hover);
+    background: color-mix(in srgb, var(--primary-text-color) 10%, var(--grc-item-bg));
   }
   .numpad-btn:active {
-    background: var(--grc-item-bg-active);
+    background: color-mix(in srgb, var(--primary-text-color) 18%, var(--grc-item-bg));
   }
   .numpad-dash, .numpad-enter {
     font-size: 14px;

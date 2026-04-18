@@ -15,18 +15,7 @@ import { checkConditionsMet, collectConditionEntities } from './helpers';
 import { resolveColor } from './helpers';
 import { cardStyles } from './styles';
 import { ITEMS } from './items';
-import {
-  OPEN_SOURCE_POPUP_EVENT,
-  openSourcePopup,
-  renderSourcePopup,
-  type OpenSourcePopupDetail,
-} from './items/source';
-import {
-  OPEN_NUMPAD_POPUP_EVENT,
-  openNumpadPopup,
-  renderNumpadPopup,
-  type OpenNumpadPopupDetail,
-} from './items/numbers';
+import { OPEN_POPUP_EVENT, type OpenPopupDetail } from './items/base';
 
 interface SwipeState {
   startX: number;
@@ -40,10 +29,8 @@ export class GridRemoteCard extends LitElement {
     return {
       hass:                { attribute: false },
       _config:             { state: true },
-      _sourcePopupOpen:    { state: true },
-      _numpadPopupOpen:    { state: true },
-      _sourcePopupItemIdx: { state: true },
-      _numpadPopupItemIdx: { state: true },
+      _popupOpen:          { state: true },
+      _popupItemIdx:       { state: true },
       _currentPage:        { state: true },
     };
   }
@@ -53,11 +40,9 @@ export class GridRemoteCard extends LitElement {
   // Reactive properties
   hass!: HomeAssistant;
   _config!: GridRemoteCardConfig;
-  _sourcePopupOpen = false;
-  _numpadPopupOpen = false;
-  _sourcePopupItemIdx: number | null = null;
+  _popupOpen = false;
+  _popupItemIdx: number | null = null;
   _popupAnchorEl: HTMLElement | null = null;
-  _numpadPopupItemIdx: number | null = null;
   _currentPage = 0;
 
   // Internal (non-reactive) state
@@ -87,40 +72,102 @@ export class GridRemoteCard extends LitElement {
 
   connectedCallback(): void {
     super.connectedCallback();
-    this.addEventListener(OPEN_SOURCE_POPUP_EVENT, this._onOpenSourcePopup as EventListener);
-    this.addEventListener(OPEN_NUMPAD_POPUP_EVENT, this._onOpenNumpadPopup as EventListener);
+    this.addEventListener(OPEN_POPUP_EVENT, this._onOpenPopup as EventListener);
   }
 
   disconnectedCallback(): void {
     super.disconnectedCallback();
-    this.removeEventListener(OPEN_SOURCE_POPUP_EVENT, this._onOpenSourcePopup as EventListener);
-    this.removeEventListener(OPEN_NUMPAD_POPUP_EVENT, this._onOpenNumpadPopup as EventListener);
+    this.removeEventListener(OPEN_POPUP_EVENT, this._onOpenPopup as EventListener);
     if (this._popupOutsideListenerActive) {
       this._popupOutsideListenerActive = false;
       window.removeEventListener('pointerdown', this._onWindowPointerDown, true);
     }
   }
 
-  private _onOpenSourcePopup = (e: CustomEvent<OpenSourcePopupDetail>): void => {
-    // Toggle: if the same popup is already open, close it instead of re-opening
-    if (this._sourcePopupOpen && this._sourcePopupItemIdx === e.detail.itemIndex) {
-      this._sourcePopupOpen = false;
-      this._popupAnchorEl = null;
-      this._removePopupOutsideListener();
+  private _onOpenPopup = (e: CustomEvent<OpenPopupDetail>): void => {
+    // Toggle: tapping the same popup-trigger closes it.
+    if (this._popupOpen && this._popupItemIdx === e.detail.itemIndex) {
+      this._closePopup();
       return;
     }
-    openSourcePopup(this, e.detail.itemIndex, e.detail.anchorEl);
+    this._popupItemIdx = e.detail.itemIndex;
+    this._popupOpen = true;
+    this._popupAnchorEl = e.detail.anchorEl;
+    this._addPopupOutsideListener();
+    this.updateComplete.then(() => this._positionPopup());
   };
 
-  private _onOpenNumpadPopup = (e: CustomEvent<OpenNumpadPopupDetail>): void => {
-    if (this._numpadPopupOpen && this._numpadPopupItemIdx === e.detail.itemIndex) {
-      this._numpadPopupOpen = false;
-      this._popupAnchorEl = null;
-      this._removePopupOutsideListener();
-      return;
+  _closePopup(): void {
+    if (!this._popupOpen) return;
+    this._popupOpen = false;
+    this._popupItemIdx = null;
+    this._popupAnchorEl = null;
+    this._removePopupOutsideListener();
+  }
+
+  private _positionPopup(): void {
+    const menu = this.shadowRoot?.getElementById('grc-popup-menu') as HTMLElement | null;
+    const anchorEl = this._popupAnchorEl;
+    if (!menu || !anchorEl) return;
+    const haCard = this.shadowRoot?.querySelector('ha-card') as HTMLElement | null;
+    if (!haCard) return;
+    const cardRect = haCard.getBoundingClientRect();
+    const anchorRect = anchorEl.getBoundingClientRect();
+    const menuRect = menu.getBoundingClientRect();
+    // Prefer fitting within ha-card bounds; fall back to viewport comparison
+    const spaceBelowInCard = cardRect.bottom - anchorRect.bottom - 8;
+    const spaceAboveInCard = anchorRect.top - cardRect.top - 8;
+    const spaceBelowInViewport = window.innerHeight - anchorRect.bottom - 8;
+    const spaceAboveInViewport = anchorRect.top - 8;
+    const fitsBelowCard = menuRect.height <= spaceBelowInCard;
+    const fitsAboveCard = menuRect.height <= spaceAboveInCard;
+    let top: number;
+    if (fitsBelowCard) {
+      top = anchorRect.bottom - cardRect.top + 8;
+    } else if (fitsAboveCard) {
+      top = anchorRect.top - cardRect.top - menuRect.height - 8;
+    } else if (spaceBelowInViewport >= spaceAboveInViewport) {
+      top = anchorRect.bottom - cardRect.top + 8;
+    } else {
+      top = anchorRect.top - cardRect.top - menuRect.height - 8;
     }
-    openNumpadPopup(this, e.detail.itemIndex, e.detail.anchorEl);
-  };
+    menu.style.top = `${top}px`;
+    const cw = cardRect.width;
+    const mw = menuRect.width;
+    let left: number;
+    if (mw > cw) {
+      left = (cw - mw) / 2;
+    } else {
+      left = anchorRect.left + anchorRect.width / 2 - cardRect.left - mw / 2;
+      left = Math.max(0, Math.min(left, cw - mw));
+    }
+    menu.style.left = `${left}px`;
+  }
+
+  private _renderPopup(): TemplateResult | '' {
+    if (!this._popupOpen || this._popupItemIdx == null) return '';
+    const item = this._items[this._popupItemIdx];
+    if (!item) return '';
+    const meta = ITEMS[item.type];
+    const content = meta?.cls.renderPopup?.(this, this._popupItemIdx);
+    if (!content) return '';
+    const cfg = this._config;
+    const bg = resolveColor(cfg.card_background_color || '');
+    const btnBg = resolveColor(cfg.button_background_color || '');
+    const iconColor = resolveColor(cfg.icon_color || '');
+    const textColor = resolveColor(cfg.text_color || '');
+    const styleParts: string[] = [];
+    if (bg) styleParts.push(`background:${bg}`);
+    if (btnBg) styleParts.push(`--grc-item-bg:${btnBg}`);
+    if (iconColor) styleParts.push(`--grc-item-icon:${iconColor}`);
+    if (iconColor) styleParts.push(`--grc-popup-icon-color:${iconColor}`);
+    if (textColor) styleParts.push(`--grc-popup-text-color:${textColor}`);
+    const menuStyle = styleParts.join(';');
+    return html`
+      <div class="popup-overlay"></div>
+      <div class="popup-menu" id="grc-popup-menu" style="${menuStyle}">${content}</div>
+    `;
+  }
 
   /** Config items with fallback to empty array */
   get _items(): Item[] { return this._config?.items || []; }
@@ -215,7 +262,7 @@ export class GridRemoteCard extends LitElement {
     const oldHass = changedProps.get('hass') as HomeAssistant | undefined;
     if (!oldHass) return true;
     const tracked = this._trackedEntities;
-    if (tracked.size === 0 && !this._sourcePopupOpen) return false;
+    if (tracked.size === 0 && !this._popupOpen) return false;
     for (const eid of tracked) {
       if (oldHass.states[eid] !== this.hass.states[eid]) return true;
     }
@@ -249,7 +296,9 @@ export class GridRemoteCard extends LitElement {
       ? `width:calc(${cols} * var(--grid-cell-width) + ${cols - 1} * var(--grid-gap) + 2 * var(--remote-padding) + 2 * var(--ha-card-border-width, 1px));`
       : '';
     const cardBg = resolveColor(this._config.card_background_color || '');
-    const cardBgStyle = cardBg ? `background:${cardBg};` : '';
+    // Expose card bg via custom property so descendants (e.g. DPad center btn)
+    // can use it as fallback. Per-item overrides still take precedence.
+    const cardBgStyle = cardBg ? `background:${cardBg};--grc-card-bg:${cardBg};` : '';
     const cardStyle = `${sizeStyle}${zoomStyle}${multiPageWidth}${cardBgStyle}`;
 
     if (!multiPage) {
@@ -257,9 +306,8 @@ export class GridRemoteCard extends LitElement {
         <ha-card style="${cardStyle}">
           <div class="remote-grid" style="${gridStyle}">
             ${this._items.map((item, i) => this._renderItem(item, i))}
-            ${renderSourcePopup(this)}
-            ${renderNumpadPopup(this)}
           </div>
+          ${this._renderPopup()}
         </ha-card>
       `;
     }
@@ -276,7 +324,6 @@ export class GridRemoteCard extends LitElement {
       pages.push(html`
         <div class="remote-grid" style="${gridStyle}">
           ${items.map(([item, i]) => this._renderItem(item, i))}
-          ${p === this._currentPage ? html`${renderSourcePopup(this)}${renderNumpadPopup(this)}` : ''}
         </div>
       `);
     }
@@ -292,6 +339,7 @@ export class GridRemoteCard extends LitElement {
           </div>
         </div>
         ${this._renderPageDots()}
+        ${this._renderPopup()}
       </ha-card>
     `;
   }
@@ -370,12 +418,9 @@ export class GridRemoteCard extends LitElement {
         this._currentPage = 0;
       }
     }
-    // Close open popups when the current page changes (swipe, dot click, conditions)
+    // Close open popup when the current page changes (swipe, dot click, conditions)
     if (changedProps.has('_currentPage')) {
-      if (this._sourcePopupOpen) this._sourcePopupOpen = false;
-      if (this._numpadPopupOpen) this._numpadPopupOpen = false;
-      this._popupAnchorEl = null;
-      this._removePopupOutsideListener();
+      this._closePopup();
     }
     if (changedProps.has('hass') && this.hass && !this._isEditorPreview) {
       const conds = this._config?.page_conditions;
@@ -463,10 +508,7 @@ export class GridRemoteCard extends LitElement {
     // Skip if pointerdown is on the anchor that opened the popup — the
     // anchor's own tap toggles the popup closed, avoiding the close→reopen bounce.
     if (this._popupAnchorEl && path.includes(this._popupAnchorEl)) return;
-    if (this._sourcePopupOpen) this._sourcePopupOpen = false;
-    if (this._numpadPopupOpen) this._numpadPopupOpen = false;
-    this._popupAnchorEl = null;
-    this._removePopupOutsideListener();
+    this._closePopup();
   };
 
   _addPopupOutsideListener(): void {
@@ -477,7 +519,7 @@ export class GridRemoteCard extends LitElement {
   }
 
   _removePopupOutsideListener(): void {
-    if (this._popupOutsideListenerActive && !this._sourcePopupOpen && !this._numpadPopupOpen) {
+    if (this._popupOutsideListenerActive && !this._popupOpen) {
       this._popupOutsideListenerActive = false;
       window.removeEventListener('pointerdown', this._onWindowPointerDown, true);
     }

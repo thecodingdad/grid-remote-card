@@ -1,8 +1,8 @@
 /**
  * NumbersItem — a button that opens a numeric keypad popup. Each
  * numpad key is a sub-button with its own tap_action configuration.
- * The popup is rendered in the parent card's shadow DOM via
- * `renderNumpadPopup(card)`.
+ * Popup content is provided via `static renderPopup()`; the card owns
+ * the single popup slot and renders it in its shadow DOM.
  */
 
 import { css, html, type TemplateResult } from 'lit';
@@ -28,20 +28,13 @@ const NUMPAD_DISPLAY: Record<string, string> = {
 };
 import { resolveColor } from '../helpers';
 import { t } from '../i18n';
-import { ItemBase } from './base';
+import { ItemBase, OPEN_POPUP_EVENT, type OpenPopupDetail } from './base';
 import {
   btnTextStyles,
   remoteBtnStyles,
   rippleStyles,
   variantRadiusStyles,
 } from './shared-styles';
-
-export const OPEN_NUMPAD_POPUP_EVENT = 'grc-open-numpad-popup';
-
-export interface OpenNumpadPopupDetail {
-  itemIndex: number;
-  anchorEl: HTMLElement;
-}
 
 const NUMPAD_OPTIONS_FIELDS = [
   { name: 'hide_dash', selector: { boolean: {} } },
@@ -75,12 +68,38 @@ export class NumbersItem extends ItemBase {
     if (actionType !== 'tap') return false;
     const ta = this.item.tap_action as any;
     if (ta && ta.action && ta.action !== 'none') return false;
-    this.dispatchEvent(new CustomEvent<OpenNumpadPopupDetail>(OPEN_NUMPAD_POPUP_EVENT, {
+    this.dispatchEvent(new CustomEvent<OpenPopupDetail>(OPEN_POPUP_EVENT, {
       detail: { itemIndex: this.index, anchorEl },
       bubbles: true,
       composed: true,
     }));
     return true;
+  }
+
+  static override renderPopup(card: GridRemoteCard, itemIndex: number): TemplateResult | '' {
+    const item = card._items[itemIndex];
+    if (!item) return '';
+    const hideDash = item.hide_dash ?? false;
+    const hideEnter = item.hide_enter ?? false;
+    return html`
+      <div class="numpad-grid">
+        ${NUMPAD_KEYS.map((key) => {
+          const hidden = (key === 'dash' && hideDash) || (key === 'enter' && hideEnter);
+          if (hidden) return '';
+          const col = key === 'dash' ? '1' : key === '0' ? '2' : key === 'enter' ? '3' : '';
+          const style = col ? `grid-column:${col}` : '';
+          return html`
+            <button class="numpad-btn ${key === 'enter' ? 'numpad-enter' : ''} ${key === 'dash' ? 'numpad-dash' : ''}"
+                    style="${style}"
+                    @click=${() => handleNumpadTap(card, itemIndex, key)}>
+              ${key === 'enter'
+                ? html`<ha-icon icon="mdi:keyboard-return" style="--mdc-icon-size:20px;"></ha-icon>`
+                : NUMPAD_DISPLAY[key]}
+            </button>
+          `;
+        })}
+      </div>
+    `;
   }
 
   protected override render(): TemplateResult {
@@ -113,56 +132,8 @@ export class NumbersItem extends ItemBase {
 
 // -- Popup runtime (rendered into card's shadow DOM) -------------------------
 
-export function openNumpadPopup(card: GridRemoteCard, itemIndex: number, anchorEl: HTMLElement): void {
-  card._numpadPopupItemIdx = itemIndex;
-  card._numpadPopupOpen = true;
-  card._popupAnchorEl = anchorEl;
-  card._addPopupOutsideListener();
-  card.updateComplete.then(() => {
-    const menu = card.shadowRoot?.getElementById('numpad-popup-menu') as HTMLElement | null;
-    if (!menu || !anchorEl) return;
-    const container = card.shadowRoot?.querySelector('.remote-grid');
-    if (!container) return;
-    const scale = (card._config.scale || 100) / 100;
-    const containerRect = container.getBoundingClientRect();
-    const anchorRect = anchorEl.getBoundingClientRect();
-
-    menu.style.maxHeight = 'none';
-
-    const menuRect = menu.getBoundingClientRect();
-
-    const spaceBelow = containerRect.bottom - anchorRect.bottom - 8 * scale;
-    const spaceAbove = anchorRect.top - containerRect.top - 8 * scale;
-    if (spaceBelow >= menuRect.height || spaceBelow >= spaceAbove) {
-      menu.style.top = `${(anchorRect.bottom - containerRect.top) / scale + 8}px`;
-    } else {
-      menu.style.top = `${(anchorRect.top - containerRect.top) / scale - menuRect.height / scale - 8}px`;
-    }
-
-    const cw = containerRect.width / scale;
-    const mw = menuRect.width / scale;
-    let left: number;
-    if (mw > cw) {
-      left = (cw - mw) / 2;
-    } else {
-      left = (anchorRect.left + anchorRect.width / 2 - containerRect.left) / scale - mw / 2;
-      left = Math.max(0, Math.min(left, cw - mw));
-    }
-    menu.style.left = `${left}px`;
-  });
-}
-
-export function closeNumpadPopup(card: GridRemoteCard): void {
-  if (card._numpadPopupOpen) {
-    card._numpadPopupOpen = false;
-    card._popupAnchorEl = null;
-    card._removePopupOutsideListener();
-  }
-}
-
-function handleNumpadTap(card: GridRemoteCard, key: string): void {
-  if (card._numpadPopupItemIdx == null) return;
-  const item = card._items[card._numpadPopupItemIdx];
+function handleNumpadTap(card: GridRemoteCard, itemIndex: number, key: string): void {
+  const item = card._items[itemIndex];
   if (!item) return;
   const actionConfig = (item.buttons?.[key] as any)?.tap_action;
   if (!actionConfig || actionConfig.action === 'none') return;
@@ -170,36 +141,6 @@ function handleNumpadTap(card: GridRemoteCard, key: string): void {
     try { navigator.vibrate?.(50); } catch (_) { /* noop */ }
   }
   card._fireHassAction({ tap_action: actionConfig }, 'tap');
-}
-
-/** Main entry called by card.render(). Returns '' when closed. */
-export function renderNumpadPopup(card: GridRemoteCard): TemplateResult | '' {
-  if (!card._numpadPopupOpen) return '';
-  const item = card._numpadPopupItemIdx != null ? card._items[card._numpadPopupItemIdx] : null;
-  const hideDash = item?.hide_dash ?? false;
-  const hideEnter = item?.hide_enter ?? false;
-  return html`
-    <div class="popup-overlay"></div>
-    <div class="popup-menu numpad-popup" id="numpad-popup-menu">
-      <div class="numpad-grid">
-        ${NUMPAD_KEYS.map((key) => {
-          const hidden = (key === 'dash' && hideDash) || (key === 'enter' && hideEnter);
-          if (hidden) return '';
-          const col = key === 'dash' ? '1' : key === '0' ? '2' : key === 'enter' ? '3' : '';
-          const style = col ? `grid-column:${col}` : '';
-          return html`
-            <button class="numpad-btn ${key === 'enter' ? 'numpad-enter' : ''} ${key === 'dash' ? 'numpad-dash' : ''}"
-                    style="${style}"
-                    @click=${() => handleNumpadTap(card, key)}>
-              ${key === 'enter'
-                ? html`<ha-icon icon="mdi:keyboard-return" style="--mdc-icon-size:20px;"></ha-icon>`
-                : NUMPAD_DISPLAY[key]}
-            </button>
-          `;
-        })}
-      </div>
-    </div>
-  `;
 }
 
 // -- Editor ------------------------------------------------------------------
