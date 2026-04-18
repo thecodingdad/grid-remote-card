@@ -219,11 +219,26 @@ export class GridRemoteCard extends LitElement {
     const cardWidth = (cols * cellW + (cols - 1) * gap + 2 * padding + 2 * border) * scale;
     const remoteHeight = (rows * cellH + (rows - 1) * gap + 2 * padding + dotsHeight) * scale;
 
-    // Section grid: 12 columns per section, gap and max-width from CSS vars
+    // Section grid: 12 columns per section. HA caps column width at
+    // --column-max-width but the actual rendered width can be smaller
+    // when the section itself is narrower (e.g. narrow viewport, sidebar
+    // open). Walk up to the enclosing hui-grid-section and use its real
+    // measured width instead of the CSS var — otherwise the formula
+    // under-counts columns and the card overflows its slot on smaller
+    // screens. Fall back to the CSS var when the section is not yet
+    // in the DOM (initial placement).
     const SEC_COLS = 12;
     const colGap = parseInt(style.getPropertyValue('--column-gap')) || 8;
     const colMaxWidth = parseInt(style.getPropertyValue('--column-max-width')) || 500;
-    const secColWidth = (colMaxWidth - (SEC_COLS - 1) * colGap) / SEC_COLS;
+    let section: HTMLElement | null = this.parentElement;
+    while (section && section.tagName !== 'HUI-GRID-SECTION' && section.tagName !== 'HUI-SECTION') {
+      const root = section.getRootNode();
+      section = section.parentElement
+        ?? (root instanceof ShadowRoot ? (root.host as HTMLElement) : null);
+    }
+    const sectionWidth = section?.getBoundingClientRect().width || colMaxWidth;
+    const effectiveSectionWidth = Math.min(sectionWidth, colMaxWidth);
+    const secColWidth = (effectiveSectionWidth - (SEC_COLS - 1) * colGap) / SEC_COLS;
     const neededCols = Math.ceil((cardWidth + colGap) / (secColWidth + colGap));
 
     const rowHeight = parseInt(style.getPropertyValue('--row-height')) || 56;
