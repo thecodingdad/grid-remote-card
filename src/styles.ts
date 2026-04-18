@@ -19,6 +19,7 @@ export const cardStyles = css`
     --grc-item-icon:      var(--primary-text-color);
     --grc-item-press-filter: brightness(0.85);
     --grc-dpad-center-size: 64px;
+    --grc-page-gap: calc(2 * var(--remote-padding));
     display: flex;
     justify-content: center;
     align-items: center;
@@ -74,7 +75,7 @@ export const cardStyles = css`
     border-radius: var(--ha-card-border-radius, 12px);
     border-width: var(--ha-card-border-width, 1px);
     border-style: solid;
-    border-color: var(--ha-card-border-color, var(--divider-color, #e0e0e0));
+    border-color: var(--grc-remote-border, var(--ha-card-border-color, var(--divider-color, #e0e0e0)));
     box-shadow: 0 4px 16px rgba(0,0,0,0.22);
     padding: 8px;
     min-width: 140px;
@@ -92,17 +93,18 @@ export const cardStyles = css`
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 10px 16px;
+    padding: 8px 16px;
     cursor: pointer;
-    transition: background 0.12s;
+    transition: background 0.12s, filter 0.15s, transform 0.08s;
     border: none;
-    background: none;
+    background-color: var(--grc-item-bg);
+    background-image: var(--grc-btn-bg-overlay, none);
     width: 100%;
     outline: none;
     -webkit-tap-highlight-color: transparent;
   }
   .popup-item:hover, .popup-item:focus-visible {
-    background: color-mix(in srgb, var(--primary-text-color) 10%, var(--grc-item-bg));
+    background-color: color-mix(in srgb, var(--primary-text-color) 10%, var(--grc-item-bg));
   }
   .popup-item:active { opacity: 0.7; }
   .popup-item.active {
@@ -145,6 +147,14 @@ export const cardStyles = css`
     color: var(--secondary-text-color);
     font-size: 13px;
   }
+  .source-popup-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .source-popup-list .popup-item {
+    border-radius: 9999px;
+  }
 
   /* Numpad popup layout (inside shared .popup-menu) */
   .numpad-popup {
@@ -164,21 +174,23 @@ export const cardStyles = css`
     width: 48px;
     height: 40px;
     border-radius: 8px;
-    background: var(--grc-item-bg);
+    background-color: var(--grc-item-bg);
+    background-image: var(--grc-btn-bg-overlay, none);
     color: var(--grc-item-icon);
     font-size: 18px;
     font-weight: 500;
     font-family: var(--mdc-typography-font-family, Roboto, sans-serif);
+    transition: filter 0.15s, transform 0.08s;
     -webkit-tap-highlight-color: transparent;
     user-select: none;
     position: relative;
     overflow: hidden;
   }
   .numpad-btn:hover {
-    background: color-mix(in srgb, var(--primary-text-color) 10%, var(--grc-item-bg));
+    background-color: color-mix(in srgb, var(--primary-text-color) 10%, var(--grc-item-bg));
   }
   .numpad-btn:active {
-    background: color-mix(in srgb, var(--primary-text-color) 18%, var(--grc-item-bg));
+    background-color: color-mix(in srgb, var(--primary-text-color) 18%, var(--grc-item-bg));
   }
   .numpad-dash, .numpad-enter {
     font-size: 14px;
@@ -187,20 +199,26 @@ export const cardStyles = css`
   /* Multi-page */
   .page-container {
     overflow: hidden;
+    clip-path: inset(0 calc(var(--grc-page-gap, 0px) / -2) -20px calc(var(--grc-page-gap, 0px) / -2));
     position: relative;
     touch-action: pan-y;
     flex: 1;
+    margin: calc(-1 * var(--remote-padding));
+    padding: var(--remote-padding);
   }
   .page-track {
     display: flex;
     transition: transform 0.3s ease;
     height: 100%;
+    gap: var(--grc-page-gap, 0px);
   }
   .page-track > .remote-grid {
     flex: 0 0 100%;
     min-width: 0;
   }
   .page-dots {
+    position: relative;
+    z-index: 2;
     display: flex;
     justify-content: center;
     gap: 6px;
@@ -223,6 +241,75 @@ export const cardStyles = css`
   }
   .page-dot.conditional {
     border: 1.5px solid var(--primary-color);
+  }
+
+  /* 3D style — enabled when card has .style-3d class. Properties cascade
+     into item shadow DOMs via custom properties (gradient, shadows, filters). */
+  ha-card.style-3d {
+    /* Use rgba overlays layered on top of the item's background-color
+       (set via --grc-btn-bg). A gradient whose colour stops referenced
+       var(--grc-btn-bg) would not pick up per-button overrides because
+       custom-property var() substitution is resolved at declaration
+       scope, not at use site. Painting an additive overlay on top of
+       the background-color side-steps this. */
+    --grc-btn-bg-overlay: radial-gradient(circle at 30% 25%,
+      rgba(255, 255, 255, 0.18) 0%,
+      transparent 55%,
+      rgba(0, 0, 0, 0.22) 100%);
+    --grc-btn-bg-overlay-active: radial-gradient(circle at 30% 25%,
+      rgba(0, 0, 0, 0.18) 0%,
+      rgba(0, 0, 0, 0.28) 100%);
+    --grc-btn-shadow:
+      0 4px 8px rgba(0, 0, 0, 0.55),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08),
+      inset 0 -2px 4px rgba(0, 0, 0, 0.35);
+    --grc-btn-shadow-active:
+      inset 0 3px 8px rgba(0, 0, 0, 0.6),
+      inset 0 -1px 2px rgba(255, 255, 255, 0.05);
+    --grc-btn-hover-filter: brightness(1.1);
+    --grc-btn-active-transform: translateY(1px);
+    --grc-dpad-cell-overlay: radial-gradient(circle at 15% 15%,
+      rgba(255, 255, 255, 0.18) 0%,
+      transparent 55%,
+      rgba(0, 0, 0, 0.2) 100%);
+    --grc-dpad-cell-overlay-active: radial-gradient(circle at 15% 15%,
+      rgba(0, 0, 0, 0.12) 0%,
+      rgba(0, 0, 0, 0.24) 100%);
+    --grc-slider-track-overlay: radial-gradient(ellipse at 50% 0%,
+      rgba(255, 255, 255, 0.12) 0%,
+      transparent 60%,
+      rgba(0, 0, 0, 0.2) 100%);
+    --grc-slider-track-shadow:
+      0 4px 8px rgba(0, 0, 0, 0.55),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08),
+      inset 0 -2px 4px rgba(0, 0, 0, 0.35);
+    --grc-slider-fill-overlay: radial-gradient(ellipse at 50% 0%,
+      rgba(255, 255, 255, 0.35) 0%,
+      transparent 60%,
+      rgba(0, 0, 0, 0.25) 100%);
+    --grc-slider-fill-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.15),
+      inset 0 -2px 4px rgba(0, 0, 0, 0.3);
+  }
+  ha-card.style-3d {
+    background: linear-gradient(145deg,
+      color-mix(in srgb, var(--grc-card-bg, var(--card-background-color, var(--ha-card-background, #222))) 100%, white 3%),
+      color-mix(in srgb, var(--grc-card-bg, var(--card-background-color, var(--ha-card-background, #222))) 100%, black 6%));
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+  ha-card.style-3d .numpad-btn,
+  ha-card.style-3d .popup-item {
+    box-shadow: var(--grc-btn-shadow);
+  }
+  ha-card.style-3d .numpad-btn:hover,
+  ha-card.style-3d .popup-item:hover {
+    filter: brightness(1.1);
+  }
+  ha-card.style-3d .numpad-btn:active,
+  ha-card.style-3d .popup-item:active {
+    background-image: var(--grc-btn-bg-overlay-active, var(--grc-btn-bg-overlay, none));
+    box-shadow: var(--grc-btn-shadow-active);
+    transform: translateY(1px);
   }
 `;
 

@@ -94,12 +94,14 @@ export class ColorButtonsItem extends ItemBase {
         height: 20px !important;
         border-radius: 6px !important;
         margin: 0 !important;
-      }
-      .remote-btn.color-btn:hover {
-        background: color-mix(in srgb, var(--grc-btn-bg) 80%, white);
-      }
-      .remote-btn.color-btn:active {
-        filter: var(--grc-item-press-filter);
+        /* Suppress the 3D overlay so the saturated palette colour stays
+           pure. Hover/active vars mix with white as in the original
+           flat-mode behaviour. */
+        --grc-btn-bg-overlay: none;
+        --grc-btn-bg-overlay-active: none;
+        --grc-btn-hover-bg: color-mix(in srgb, var(--grc-btn-bg) 80%, white);
+        --grc-btn-hover-filter: none;
+        --grc-btn-active-bg: var(--grc-btn-bg);
       }
     `,
   ];

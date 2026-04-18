@@ -58,11 +58,18 @@ export class MediaItem extends ItemBase {
         border-radius: 12px;
         overflow: hidden;
         cursor: pointer;
-        background: var(--grc-item-bg);
+        background-color: var(--grc-btn-bg, var(--grc-item-bg));
+        background-image: var(--grc-btn-bg-overlay, none);
+        box-shadow: var(--grc-btn-shadow, none);
+        transition: filter 0.15s, transform 0.08s;
         -webkit-tap-highlight-color: transparent;
       }
       .media-tile:hover { filter: brightness(1.1); }
-      .media-tile:active { filter: brightness(0.9); }
+      .media-tile:active {
+        filter: brightness(0.9);
+        box-shadow: var(--grc-btn-shadow-active, var(--grc-btn-shadow, none));
+        transform: var(--grc-btn-active-transform, none);
+      }
       .media-cover {
         position: absolute;
         inset: 0;

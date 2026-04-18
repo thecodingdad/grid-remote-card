@@ -80,6 +80,7 @@ export interface Item {
   icon_color?: string;
   text_color?: string;
   background_color?: string;
+  fill_color?: string;
 
   // Common actions
   tap_action?: GrcAction;
@@ -155,12 +156,14 @@ export interface GridRemoteCardConfig extends LovelaceCardConfig {
   rows?: number;
   scale?: number;
   sizing?: 'normal' | 'stretch';
+  ui_style?: 'flat' | '3d';
   page_count?: number;
   page_conditions?: PageCondition[][];
   card_background_color?: string;
   icon_color?: string;
   text_color?: string;
   button_background_color?: string;
+  remote_border_color?: string;
   haptic_tap?: boolean;
   haptic_hold?: boolean;
   hold_repeat_interval?: number;

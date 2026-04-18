@@ -30,7 +30,10 @@ export const remoteBtnStyles = css`
     width: 100%;
     height: 100%;
     border-radius: var(--grc-variant-radius, 50%);
-    background: var(--grc-btn-bg, var(--grc-item-bg));
+    background-color: var(--grc-btn-bg, var(--grc-item-bg));
+    background-image: var(--grc-btn-bg-overlay, none);
+    box-shadow: var(--grc-btn-shadow, none);
+    transition: filter 0.15s, transform 0.08s;
     -webkit-tap-highlight-color: transparent;
     -webkit-touch-callout: none;
     user-select: none;
@@ -51,11 +54,15 @@ export const remoteBtnStyles = css`
   }
 
   .remote-btn:hover {
-    background: color-mix(in srgb, var(--primary-text-color) 10%, var(--grc-btn-bg, var(--grc-item-bg)));
+    background-color: var(--grc-btn-hover-bg, color-mix(in srgb, var(--primary-text-color) 10%, var(--grc-btn-bg, var(--grc-item-bg))));
+    filter: var(--grc-btn-hover-filter, none);
   }
   .remote-btn:active {
-    background: color-mix(in srgb, var(--primary-text-color) 18%, var(--grc-btn-bg, var(--grc-item-bg)));
-    filter: var(--grc-item-press-filter);
+    background-color: var(--grc-btn-active-bg, color-mix(in srgb, var(--primary-text-color) 18%, var(--grc-btn-bg, var(--grc-item-bg))));
+    background-image: var(--grc-btn-bg-overlay-active, var(--grc-btn-bg-overlay, none));
+    box-shadow: var(--grc-btn-shadow-active, var(--grc-btn-shadow, none));
+    filter: var(--grc-btn-active-filter, var(--grc-item-press-filter));
+    transform: var(--grc-btn-active-transform, none);
   }
 `;
 

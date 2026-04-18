@@ -46,11 +46,30 @@ const SVG_SIZING_STRETCH = html`
     <rect x="4" y="4" width="64" height="36" rx="4" fill="currentColor" opacity="0.75"/>
   </svg>`;
 
+const SVG_STYLE_FLAT = html`
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 72 44" width="72" height="44">
+    <circle cx="20" cy="22" r="10" fill="currentColor" opacity="0.75"/>
+    <circle cx="52" cy="22" r="10" fill="currentColor" opacity="0.75"/>
+  </svg>`;
+
+const SVG_STYLE_3D = html`
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 72 44" width="72" height="44">
+    <defs>
+      <radialGradient id="grc-3d-g" cx="35%" cy="30%" r="70%">
+        <stop offset="0%" stop-color="currentColor" stop-opacity="1"/>
+        <stop offset="100%" stop-color="currentColor" stop-opacity="0.35"/>
+      </radialGradient>
+    </defs>
+    <circle cx="20" cy="22" r="10" fill="url(#grc-3d-g)"/>
+    <circle cx="52" cy="22" r="10" fill="url(#grc-3d-g)"/>
+  </svg>`;
+
 const SCHEMA_GLOBAL_APPEARANCE = [
   { name: 'card_background_color', selector: { ui_color: {} } },
   { name: 'icon_color', selector: { ui_color: {} } },
   { name: 'text_color', selector: { ui_color: {} } },
   { name: 'button_background_color', selector: { ui_color: {} } },
+  { name: 'remote_border_color', selector: { ui_color: {} } },
   { name: 'scale', selector: { number: { min: 50, max: 200, step: 5, mode: 'slider', unit_of_measurement: '%' } } },
 ];
 
@@ -67,8 +86,10 @@ const EDITOR_LABELS: Record<string, string> = {
   icon: 'Icon', text: 'Text',
   icon_color: 'Icon color', text_color: 'Text color',
   background_color: 'Background color',
+  fill_color: 'Fill color',
   card_background_color: 'Card background color',
   button_background_color: 'Button background color',
+  remote_border_color: 'Remote border color',
   scale: 'Scale', width: 'Width', height: 'Height',
   tap_action: 'Tap action',
   hold_action: 'Hold action',
@@ -176,6 +197,7 @@ export class GridRemoteCardEditor extends LitElement {
   _marqueeStartY = 0;
   _longPressTimer: ReturnType<typeof setTimeout> | null = null;
   _onEscBound: ((e: KeyboardEvent) => void) | null = null;
+  _onPreviewPageChanged: ((e: Event) => void) | null = null;
   _openSubButton: string | null = null;
   _openSourceIdx: number | null = null;
   _dragFromIdx: number | null = null;
@@ -261,6 +283,15 @@ export class GridRemoteCardEditor extends LitElement {
     };
     // Capture phase on document to intercept before HA edit dialog catches Escape
     document.addEventListener('keydown', this._onEscBound, true);
+    // Sync editor page tab selection back from preview (swipe, dot click, conditions).
+    this._onPreviewPageChanged = (e: Event) => {
+      const page = (e as CustomEvent).detail?.page;
+      if (typeof page !== 'number' || page === this._currentEditorPage) return;
+      this._currentEditorPage = page;
+      this._clearSelection();
+      this._fireConfigChanged();
+    };
+    window.addEventListener('grc-preview-page-changed', this._onPreviewPageChanged);
   }
 
   disconnectedCallback() {
@@ -268,6 +299,10 @@ export class GridRemoteCardEditor extends LitElement {
     if (this._onEscBound) {
       document.removeEventListener('keydown', this._onEscBound, true);
       this._onEscBound = null;
+    }
+    if (this._onPreviewPageChanged) {
+      window.removeEventListener('grc-preview-page-changed', this._onPreviewPageChanged);
+      this._onPreviewPageChanged = null;
     }
     // Clean up dialog-box handler if still pending
     if (this._dialogBoxHandler && this._dialogBoxEditCard) {
@@ -1967,9 +2002,11 @@ export class GridRemoteCardEditor extends LitElement {
       icon_color: this._config.icon_color ?? '',
       text_color: this._config.text_color ?? '',
       button_background_color: this._config.button_background_color ?? '',
+      remote_border_color: this._config.remote_border_color ?? '',
       scale: this._config.scale ?? 100,
     };
     const sizing = this._config.sizing || 'normal';
+    const uiStyle = this._config.ui_style || 'flat';
     const hapticData = {
       haptic_tap: this._config.haptic_tap ?? false,
       haptic_hold: this._config.haptic_hold ?? false,
@@ -1986,6 +2023,11 @@ export class GridRemoteCardEditor extends LitElement {
         <div class="visual-selector-row">
           ${this._renderVisualOption('sizing', 'normal', sizing, t(this.hass, 'Normal'), SVG_SIZING_NORMAL)}
           ${this._renderVisualOption('sizing', 'stretch', sizing, t(this.hass, 'Stretch'), SVG_SIZING_STRETCH)}
+        </div>
+        <div class="visual-selector-label">${t(this.hass, 'Style')}</div>
+        <div class="visual-selector-row">
+          ${this._renderVisualOption('ui_style', 'flat', uiStyle, t(this.hass, 'Flat'), SVG_STYLE_FLAT)}
+          ${this._renderVisualOption('ui_style', '3d', uiStyle, t(this.hass, '3D'), SVG_STYLE_3D)}
         </div>
       `)}
       ${this._renderCollapsible('settings-haptic', t(this.hass, 'Haptic & behavior'), false, html`
@@ -2238,7 +2280,7 @@ export class GridRemoteCardEditor extends LitElement {
     e.stopPropagation();
     const val = e.detail.value;
     const updated = { ...this._config };
-    for (const key of ['card_background_color', 'icon_color', 'text_color', 'button_background_color']) {
+    for (const key of ['card_background_color', 'icon_color', 'text_color', 'button_background_color', 'remote_border_color']) {
       if (val[key]) updated[key] = val[key];
       else delete updated[key];
     }
@@ -2267,6 +2309,9 @@ export class GridRemoteCardEditor extends LitElement {
       delete updated.height;
       if (value === 'stretch') updated.sizing = 'stretch';
       else delete updated.sizing;
+    } else if (name === 'ui_style') {
+      if (value === '3d') updated.ui_style = '3d';
+      else delete updated.ui_style;
     }
     this._config = updated;
     this._fireConfigChanged();

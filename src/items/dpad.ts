@@ -83,13 +83,14 @@ export class DpadItem extends ItemBase {
     rippleStyles,
     btnTextStyles,
     css`
-      :host { display: block; width: 100%; height: 100%; }
+      :host { display: block; width: 100%; }
 
       .dpad-ring {
         position: relative;
         margin: 0 auto;
         border-radius: 50%;
         overflow: hidden;
+        box-shadow: var(--grc-btn-shadow, none);
       }
 
       .dpad-grid {
@@ -108,6 +109,15 @@ export class DpadItem extends ItemBase {
         height: auto;
         margin: 0;
         border-radius: 0;
+      }
+      /* DPad cells rotate 45° with parent grid, so default 3D overlay
+         (anchored at 30% 25%) lands off-axis. Swap to the dpad-specific
+         overlay anchored at 15% 15% so after the 45° CW rotation the
+         highlight lands directly above each cell centre. Flat mode:
+         var unset → inherits the base (none) so cells stay flat. */
+      .remote-btn.dpad-cell {
+        --grc-btn-bg-overlay: var(--grc-dpad-cell-overlay, none);
+        --grc-btn-bg-overlay-active: var(--grc-dpad-cell-overlay-active, none);
       }
       /* Separator lines between dpad cells drawn as two linear gradients
          on an overlay. Because .dpad-grid is rotated 45deg, a horizontal

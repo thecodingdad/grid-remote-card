@@ -162,13 +162,17 @@ export class SliderItem extends ItemBase {
       .slider-item:not(.classic) .pill-track {
         position: absolute;
         inset: 0;
-        background: var(--grc-item-bg);
+        background-color: var(--grc-item-bg);
+        background-image: var(--grc-slider-track-overlay, none);
+        box-shadow: var(--grc-slider-track-shadow, none);
         overflow: hidden;
         border-radius: var(--grc-variant-radius, 9999px);
       }
       .slider-item:not(.classic) .pill-fill {
         position: absolute;
-        background: color-mix(in srgb, var(--primary-text-color) 28%, transparent);
+        background-color: var(--grc-slider-fill-color, color-mix(in srgb, var(--primary-text-color) 28%, transparent));
+        background-image: var(--grc-slider-fill-overlay, none);
+        box-shadow: var(--grc-slider-fill-shadow, none);
         transition: width 0.08s linear, height 0.08s linear;
       }
       .slider-item:not(.classic):not(.vertical) .pill-fill {
@@ -250,11 +254,17 @@ export class SliderItem extends ItemBase {
              @pointercancel=${() => this._onSliderEnd()}>
     `;
 
+    const bgColor = resolveColor(item.background_color || '');
+    const fillColor = resolveColor(item.fill_color || '');
+    const styleParts = [`--slider-fill:${fillPct}%`];
+    if (bgColor) styleParts.push(`--grc-item-bg:${bgColor}`);
+    if (fillColor) styleParts.push(`--grc-slider-fill-color:${fillColor}`);
+
     if (variant !== 'classic') {
       const variantClass = VARIANT_CSS_CLASS[variant] || variant;
       return html`
         <div class="slider-item ${variantClass} ${disabled ? 'disabled' : ''} ${vertical ? 'vertical' : ''}"
-             style="--slider-fill:${fillPct}%">
+             style="${styleParts.join(';')}">
           <div class="pill-track">
             <div class="pill-fill"></div>
             ${showIcon ? html`<ha-icon class="pill-icon" .icon="${icon}" style="${iconColor ? `color:${iconColor}` : ''}"></ha-icon>` : ''}
@@ -376,12 +386,16 @@ export function renderSliderEditor(
     entity_id: item.entity_id ?? '',
     icon: item.icon ?? '',
     icon_color: item.icon_color ?? '',
+    background_color: item.background_color ?? '',
+    fill_color: item.fill_color ?? '',
   };
   const basisSchema = [
     editor._variantField(true), // true = slider variants (includes 'classic')
     { name: 'entity_id', selector: { entity: {} } },
     { name: 'icon', selector: { icon: {} } },
     { name: 'icon_color', selector: { ui_color: {} } },
+    { name: 'background_color', selector: { ui_color: {} } },
+    { name: 'fill_color', selector: { ui_color: {} } },
   ];
 
   const optionsData = {

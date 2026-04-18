@@ -197,7 +197,11 @@ export function renderSourceListContent(card: GridRemoteCard, itemIndex: number)
   if (sources.length === 0) {
     return html`<div class="source-empty">${t(card.hass, 'No sources configured')}</div>`;
   }
-  return html`${sources.map((s) => renderPopupMenuItem(card, s, s.name === activeName))}`;
+  return html`
+    <div class="source-popup-list">
+      ${sources.map((s) => renderPopupMenuItem(card, s, s.name === activeName))}
+    </div>
+  `;
 }
 
 // -- Editor ------------------------------------------------------------------

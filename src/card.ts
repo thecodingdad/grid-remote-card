@@ -292,18 +292,30 @@ export class GridRemoteCard extends LitElement {
     const rows = this._config.rows || 9;
     const gridStyle = `grid-template-columns: repeat(${cols}, 1fr); grid-template-rows: repeat(${rows}, 1fr);`;
     const multiPage = this._pageCount > 1;
-    const multiPageWidth = multiPage && !stretch
+    // Width is always constrained to the grid's intrinsic width so the card
+    // doesn't stretch to fill its parent (e.g. the card-picker preview).
+    // `sizing:stretch` opts out, and multi-page needs the explicit width
+    // anyway for its horizontal swipe container to size correctly.
+    const multiPageWidth = !stretch
       ? `width:calc(${cols} * var(--grid-cell-width) + ${cols - 1} * var(--grid-gap) + 2 * var(--remote-padding) + 2 * var(--ha-card-border-width, 1px));`
       : '';
     const cardBg = resolveColor(this._config.card_background_color || '');
     // Expose card bg via custom property so descendants (e.g. DPad center btn)
     // can use it as fallback. Per-item overrides still take precedence.
     const cardBgStyle = cardBg ? `background:${cardBg};--grc-card-bg:${cardBg};` : '';
-    const cardStyle = `${sizeStyle}${zoomStyle}${multiPageWidth}${cardBgStyle}`;
+    const btnBg = resolveColor(this._config.button_background_color || '');
+    const btnBgStyle = btnBg ? `--grc-item-bg:${btnBg};` : '';
+    const borderColor = resolveColor(this._config.remote_border_color || '');
+    const borderStyle = borderColor
+      ? `border-color:${borderColor};--grc-remote-border:${borderColor};`
+      : '';
+    const cardStyle = `${sizeStyle}${zoomStyle}${multiPageWidth}${cardBgStyle}${btnBgStyle}${borderStyle}`;
+    const style3d = this._config.ui_style === '3d';
+    const cardClass = style3d ? 'style-3d' : '';
 
     if (!multiPage) {
       return html`
-        <ha-card style="${cardStyle}">
+        <ha-card class="${cardClass}" style="${cardStyle}">
           <div class="remote-grid" style="${gridStyle}">
             ${this._items.map((item, i) => this._renderItem(item, i))}
           </div>
@@ -314,9 +326,10 @@ export class GridRemoteCard extends LitElement {
 
     const swipeDx = this._swipeState?.dx || 0;
     const swiping = this._swipeState?.swiping || false;
+    const p = this._currentPage;
     const trackTransform = swiping
-      ? `transform:translateX(calc(${-this._currentPage * 100}% + ${swipeDx}px));transition:none;`
-      : `transform:translateX(${-this._currentPage * 100}%);`;
+      ? `transform:translateX(calc(${-p * 100}% - ${p} * var(--grc-page-gap, 0px) + ${swipeDx}px));transition:none;`
+      : `transform:translateX(calc(${-p * 100}% - ${p} * var(--grc-page-gap, 0px)));`;
 
     const pages: TemplateResult[] = [];
     for (let p = 0; p < this._pageCount; p++) {
@@ -329,7 +342,7 @@ export class GridRemoteCard extends LitElement {
     }
 
     return html`
-      <ha-card style="${cardStyle}">
+      <ha-card class="${cardClass}" style="${cardStyle}">
         <div class="page-container"
              @touchstart=${this._onSwipeStart}
              @touchmove=${this._onSwipeMove}
@@ -421,6 +434,14 @@ export class GridRemoteCard extends LitElement {
     // Close open popup when the current page changes (swipe, dot click, conditions)
     if (changedProps.has('_currentPage')) {
       this._closePopup();
+      // Notify editor (if any) so its page tabs stay in sync with swipes/dot clicks.
+      if (this._isEditorPreview) {
+        this.dispatchEvent(new CustomEvent('grc-preview-page-changed', {
+          detail: { page: this._currentPage },
+          bubbles: true,
+          composed: true,
+        }));
+      }
     }
     if (changedProps.has('hass') && this.hass && !this._isEditorPreview) {
       const conds = this._config?.page_conditions;
