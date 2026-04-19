@@ -152,16 +152,19 @@ export class GridRemoteCard extends LitElement {
     const content = meta?.cls.renderPopup?.(this, this._popupItemIdx);
     if (!content) return '';
     const cfg = this._config;
-    const bg = resolveColor(cfg.card_background_color || '');
-    const btnBg = resolveColor(cfg.button_background_color || '');
-    const iconColor = resolveColor(cfg.icon_color || '');
-    const textColor = resolveColor(cfg.text_color || '');
-    const styleParts: string[] = [];
-    if (bg) styleParts.push(`background:${bg}`);
-    if (btnBg) styleParts.push(`--grc-item-bg:${btnBg}`);
-    if (iconColor) styleParts.push(`--grc-item-icon:${iconColor}`);
-    if (iconColor) styleParts.push(`--grc-popup-icon-color:${iconColor}`);
-    if (textColor) styleParts.push(`--grc-popup-text-color:${textColor}`);
+    // Same built-in defaults as the card render so the popup matches
+    // the remote surface even when no config value has been set.
+    const bg = resolveColor(cfg.card_background_color || '#333');
+    const btnBg = resolveColor(cfg.button_background_color || '#606060');
+    const iconColor = resolveColor(cfg.icon_color || '#fff');
+    const textColor = resolveColor(cfg.text_color || '#fff');
+    const styleParts = [
+      `background:${bg}`,
+      `--grc-item-bg:${btnBg}`,
+      `--grc-item-icon:${iconColor}`,
+      `--grc-popup-icon-color:${iconColor}`,
+      `--grc-popup-text-color:${textColor}`,
+    ];
     const menuStyle = styleParts.join(';');
     return html`
       <div class="popup-overlay"></div>
