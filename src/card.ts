@@ -219,26 +219,11 @@ export class GridRemoteCard extends LitElement {
     const cardWidth = (cols * cellW + (cols - 1) * gap + 2 * padding + 2 * border) * scale;
     const remoteHeight = (rows * cellH + (rows - 1) * gap + 2 * padding + dotsHeight) * scale;
 
-    // Section grid: 12 columns per section. HA caps column width at
-    // --column-max-width but the actual rendered width can be smaller
-    // when the section itself is narrower (e.g. narrow viewport, sidebar
-    // open). Walk up to the enclosing hui-grid-section and use its real
-    // measured width instead of the CSS var — otherwise the formula
-    // under-counts columns and the card overflows its slot on smaller
-    // screens. Fall back to the CSS var when the section is not yet
-    // in the DOM (initial placement).
-    const SEC_COLS = 12;
+    // Section grid: 12 columns per section, gap and max-width from CSS vars
+    const SEC_COLS = parseInt(style.getPropertyValue('--grid-column-count')) || 12;
     const colGap = parseInt(style.getPropertyValue('--column-gap')) || 8;
     const colMaxWidth = parseInt(style.getPropertyValue('--column-max-width')) || 500;
-    let section: HTMLElement | null = this.parentElement;
-    while (section && section.tagName !== 'HUI-GRID-SECTION' && section.tagName !== 'HUI-SECTION') {
-      const root = section.getRootNode();
-      section = section.parentElement
-        ?? (root instanceof ShadowRoot ? (root.host as HTMLElement) : null);
-    }
-    const sectionWidth = section?.getBoundingClientRect().width || colMaxWidth;
-    const effectiveSectionWidth = Math.min(sectionWidth, colMaxWidth);
-    const secColWidth = (effectiveSectionWidth - (SEC_COLS - 1) * colGap) / SEC_COLS;
+    const secColWidth = (colMaxWidth - (SEC_COLS - 1) * colGap) / SEC_COLS;
     const neededCols = Math.ceil((cardWidth + colGap) / (secColWidth + colGap));
 
     const rowHeight = parseInt(style.getPropertyValue('--row-height')) || 56;
@@ -248,8 +233,8 @@ export class GridRemoteCard extends LitElement {
     this._gridCols = Math.max(this._gridCols || 0, neededCols);
 
     return {
-      rows: 1,
-      columns: 1,
+      rows: "auto",
+      columns: "full",
       min_rows: neededRows,
       min_columns: neededCols,
     };
@@ -307,10 +292,12 @@ export class GridRemoteCard extends LitElement {
     const rows = this._config.rows || 9;
     const gridStyle = `grid-template-columns: repeat(${cols}, 1fr); grid-template-rows: repeat(${rows}, 1fr);`;
     const multiPage = this._pageCount > 1;
-    // Width is always constrained to the grid's intrinsic width so the card
-    // doesn't stretch to fill its parent (e.g. the card-picker preview).
-    // `sizing:stretch` opts out, and multi-page needs the explicit width
-    // anyway for its horizontal swipe container to size correctly.
+    // Cap the card at the grid's intrinsic width so the card-picker
+    // preview (which has no width constraint) doesn't stretch it, but
+    // allow the card to shrink below that cap when the slot is narrower
+    // (sections with small --column-max-width). `sizing:stretch` opts
+    // out entirely. Multi-page still needs `width:100%` so the page
+    // track fills the slot, while `max-width` keeps the intrinsic cap.
     const multiPageWidth = !stretch
       ? `width:calc(${cols} * var(--grid-cell-width) + ${cols - 1} * var(--grid-gap) + 2 * var(--remote-padding) + 2 * var(--ha-card-border-width, 1px));`
       : '';

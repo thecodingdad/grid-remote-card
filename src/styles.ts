@@ -295,7 +295,7 @@ export const cardStyles = css`
     background: linear-gradient(145deg,
       color-mix(in srgb, var(--grc-card-bg, var(--card-background-color, var(--ha-card-background, #222))) 100%, white 3%),
       color-mix(in srgb, var(--grc-card-bg, var(--card-background-color, var(--ha-card-background, #222))) 100%, black 6%));
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.05);
   }
   ha-card.style-3d .numpad-btn,
   ha-card.style-3d .popup-item {
