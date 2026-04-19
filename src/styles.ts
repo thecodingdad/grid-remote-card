@@ -252,50 +252,82 @@ export const cardStyles = css`
        custom-property var() substitution is resolved at declaration
        scope, not at use site. Painting an additive overlay on top of
        the background-color side-steps this. */
-    --grc-btn-bg-overlay: radial-gradient(circle at 30% 25%,
-      rgba(255, 255, 255, 0.18) 0%,
-      transparent 55%,
-      rgba(0, 0, 0, 0.22) 100%);
-    --grc-btn-bg-overlay-active: radial-gradient(circle at 30% 25%,
+    /* Convex plastic-button look:
+       - Linear top-to-bottom overlay for ambient light (bright rim top,
+         soft shadow pool bottom).
+       - Radial hotspot near top-centre for the "specular" highlight.
+       - Outer shadow uses a slightly-blurred solid ring (socket gap to
+         the remote housing) plus a short drop shadow for contact shadow.
+       - Inset top/bottom bevel gives the button its curvature.
+       Edges blurred just enough to look molded (not laser-cut). */
+    --grc-btn-bg-overlay:
+      linear-gradient(to bottom,
+        rgba(255, 255, 255, 0.2) 0%,
+        rgba(255, 255, 255, 0.05) 25%,
+        rgba(255, 255, 255, 0) 60%,
+        rgba(0, 0, 0, 0.1) 85%,
+        rgba(0, 0, 0, 0.2) 100%),
+      radial-gradient(ellipse 80% 25% at 50% 10%,
+        rgba(255, 255, 255, 0.1) 0%,
+        transparent 70%);
+    --grc-btn-bg-overlay-active: linear-gradient(to bottom,
+      rgba(0, 0, 0, 0.25) 0%,
+      rgba(0, 0, 0, 0.12) 100%);
+    --grc-btn-shadow:
+      inset 0 1px 1px rgba(255, 255, 255, 0.1),
+      inset 0 -1px 2px rgba(0, 0, 0, 0.25),
+      0 0 1.5px 1.5px rgba(0, 0, 0, 0.75),
+      0 1px 0 rgba(255, 255, 255, 0.04),
+      0 3px 4px rgba(0, 0, 0, 0.42);
+    --grc-btn-shadow-active:
+      inset 0 3px 5px rgba(0, 0, 0, 0.4),
+      inset 0 1px 1px rgba(0, 0, 0, 0.25),
+      0 0 1.5px 1.5px rgba(0, 0, 0, 0.75),
+      0 1px 2px rgba(0, 0, 0, 0.3);
+    --grc-btn-hover-filter: brightness(1.08);
+    --grc-btn-active-transform: translateY(1px);
+    /* DPad cells rotate 45°; diagonal linear gradient keeps the light
+       direction consistent across cells after rotation. */
+    --grc-dpad-cell-overlay: linear-gradient(165deg,
+      rgba(255, 255, 255, 0.14) 0%,
+      rgba(255, 255, 255, 0.03) 35%,
+      transparent 65%,
+      rgba(0, 0, 0, 0.12) 100%);
+    --grc-dpad-cell-overlay-active: linear-gradient(165deg,
       rgba(0, 0, 0, 0.18) 0%,
       rgba(0, 0, 0, 0.28) 100%);
-    --grc-btn-shadow:
-      0 4px 8px rgba(0, 0, 0, 0.55),
-      inset 0 1px 0 rgba(255, 255, 255, 0.08),
-      inset 0 -2px 4px rgba(0, 0, 0, 0.35);
-    --grc-btn-shadow-active:
-      inset 0 3px 8px rgba(0, 0, 0, 0.6),
-      inset 0 -1px 2px rgba(255, 255, 255, 0.05);
-    --grc-btn-hover-filter: brightness(1.1);
-    --grc-btn-active-transform: translateY(1px);
-    --grc-dpad-cell-overlay: radial-gradient(circle at 15% 15%,
-      rgba(255, 255, 255, 0.18) 0%,
-      transparent 55%,
-      rgba(0, 0, 0, 0.2) 100%);
-    --grc-dpad-cell-overlay-active: radial-gradient(circle at 15% 15%,
-      rgba(0, 0, 0, 0.12) 0%,
-      rgba(0, 0, 0, 0.24) 100%);
-    --grc-slider-track-overlay: radial-gradient(ellipse at 50% 0%,
-      rgba(255, 255, 255, 0.12) 0%,
-      transparent 60%,
+    /* Slider track and fill share the same button look and socket ring
+       so they read as part of the same physical surface. */
+    --grc-slider-track-overlay: linear-gradient(to bottom,
+      rgba(255, 255, 255, 0.16) 0%,
+      rgba(255, 255, 255, 0.04) 30%,
+      rgba(255, 255, 255, 0) 60%,
+      rgba(0, 0, 0, 0.12) 85%,
       rgba(0, 0, 0, 0.2) 100%);
     --grc-slider-track-shadow:
-      0 4px 8px rgba(0, 0, 0, 0.55),
-      inset 0 1px 0 rgba(255, 255, 255, 0.08),
-      inset 0 -2px 4px rgba(0, 0, 0, 0.35);
-    --grc-slider-fill-overlay: radial-gradient(ellipse at 50% 0%,
-      rgba(255, 255, 255, 0.35) 0%,
-      transparent 60%,
-      rgba(0, 0, 0, 0.25) 100%);
+      inset 0 1px 1px rgba(255, 255, 255, 0.1),
+      inset 0 -1px 2px rgba(0, 0, 0, 0.25),
+      0 0 1.5px 1.5px rgba(0, 0, 0, 0.75),
+      0 1px 0 rgba(255, 255, 255, 0.04),
+      0 3px 4px rgba(0, 0, 0, 0.42);
+    --grc-slider-fill-overlay: linear-gradient(to bottom,
+      rgba(255, 255, 255, 0.2) 0%,
+      rgba(255, 255, 255, 0.06) 30%,
+      rgba(255, 255, 255, 0) 60%,
+      rgba(0, 0, 0, 0.12) 85%,
+      rgba(0, 0, 0, 0.22) 100%);
     --grc-slider-fill-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.15),
-      inset 0 -2px 4px rgba(0, 0, 0, 0.3);
+      inset 0 1px 1px rgba(255, 255, 255, 0.1),
+      inset 0 -1px 2px rgba(0, 0, 0, 0.22);
   }
   ha-card.style-3d {
     background: linear-gradient(145deg,
       color-mix(in srgb, var(--grc-card-bg, var(--card-background-color, var(--ha-card-background, #222))) 100%, white 3%),
       color-mix(in srgb, var(--grc-card-bg, var(--card-background-color, var(--ha-card-background, #222))) 100%, black 6%));
-    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    box-shadow:
+      0 2px 4px rgba(0, 0, 0, 0.4),
+      0 10px 24px rgba(0, 0, 0, 0.55),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06);
   }
   ha-card.style-3d .numpad-btn,
   ha-card.style-3d .popup-item {

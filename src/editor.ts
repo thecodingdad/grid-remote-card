@@ -2006,7 +2006,7 @@ export class GridRemoteCardEditor extends LitElement {
       scale: this._config.scale ?? 100,
     };
     const sizing = this._config.sizing || 'normal';
-    const uiStyle = this._config.ui_style || 'flat';
+    const uiStyle = this._config.ui_style || '3d';
     const hapticData = {
       haptic_tap: this._config.haptic_tap ?? false,
       haptic_hold: this._config.haptic_hold ?? false,
@@ -2310,7 +2310,8 @@ export class GridRemoteCardEditor extends LitElement {
       if (value === 'stretch') updated.sizing = 'stretch';
       else delete updated.sizing;
     } else if (name === 'ui_style') {
-      if (value === '3d') updated.ui_style = '3d';
+      // Default is '3d' — persist 'flat' explicitly, drop the key only for '3d'.
+      if (value === 'flat') updated.ui_style = 'flat';
       else delete updated.ui_style;
     }
     this._config = updated;
