@@ -348,30 +348,58 @@ export const cardStyles = css`
 export const editorStyles = css`
   :host { display: block; }
 
-  .slider-input-row {
-    margin-bottom: 8px;
-  }
-  .slider-input-label {
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--primary-text-color);
-    margin-bottom: 2px;
-  }
-  .slider-input-controls {
+  .grid-size-row {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
+    min-height: 40px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
   }
-  .slider-input-controls ha-slider {
-    flex: 1;
+  .grid-size-row .grid-label {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--primary-text-color);
+    min-width: 48px;
   }
-  .slider-input-controls ha-textfield {
-    flex: 0 0 auto;
-  }
-  .slider-input-helper {
-    font-size: 11px;
+  .grid-size-row .axis-label {
+    font-size: 12px;
     color: var(--secondary-text-color);
-    margin-top: 2px;
+  }
+  .axis-stepper {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid var(--divider-color);
+    border-radius: 10px;
+    overflow: hidden;
+    height: 38px;
+  }
+  .axis-stepper button {
+    all: unset;
+    cursor: pointer;
+    width: 34px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    color: var(--primary-text-color);
+  }
+  .axis-stepper button[disabled] {
+    opacity: 0.4;
+    cursor: default;
+  }
+  .axis-stepper button:not([disabled]):hover {
+    background: var(--secondary-background-color, rgba(0,0,0,.05));
+  }
+  .axis-stepper .num {
+    min-width: 40px;
+    text-align: center;
+    font-size: 15px;
+    border-left: 1px solid var(--divider-color);
+    border-right: 1px solid var(--divider-color);
+    height: 38px;
+    line-height: 38px;
   }
 
   .visual-selector-label {
@@ -522,12 +550,15 @@ export const editorStyles = css`
     display: flex;
     justify-content: center;
     position: relative;
+    min-height: 150px;
+    align-items: center;
   }
   .grid-editor {
     display: grid;
     gap: 4px;
     position: relative;
     touch-action: none;
+    height: fit-content;
   }
   .grid-bg-cell {
     border: 1px dashed color-mix(in srgb, var(--primary-text-color) 15%, transparent);
@@ -636,106 +667,132 @@ export const editorStyles = css`
   }
   .grid-editor-item:hover .grid-item-delete { opacity: 1; }
 
-  .clear-all-btn {
+  .canvas-icon-stack {
     position: absolute;
     top: 4px;
     right: 4px;
-    padding: 4px;
-    background: var(--card-background-color, var(--ha-card-background, #fff));
-    border: 1px solid color-mix(in srgb, var(--error-color, #f44336) 30%, transparent);
-    border-radius: 6px;
-    color: var(--error-color, #f44336);
+    z-index: 3;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .canvas-icon-stack .template-btn,
+  .canvas-icon-stack .conditions-btn {
+    opacity: 1;
+    transform: scale(1);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+  .canvas-icon-stack.drag-mode .template-btn,
+  .canvas-icon-stack.drag-mode .conditions-btn {
+    opacity: 0;
+    transform: scale(0.6);
+    pointer-events: none;
+  }
+  .canvas-icon-btn {
+    all: unset;
     cursor: pointer;
-    z-index: 2;
+    width: 30px;
+    height: 30px;
     display: flex;
     align-items: center;
     justify-content: center;
-    opacity: 0.6;
+    border-radius: 6px;
+    background: var(--card-background-color, var(--ha-card-background, #fff));
+    border: 1px solid var(--divider-color);
+    color: var(--primary-text-color);
+    position: relative;
     transform-origin: top right;
     transition: opacity 0.15s, transform 0.15s, border-color 0.15s, background 0.15s;
   }
-  .clear-all-btn:hover { opacity: 1; }
-  .clear-all-btn.drop-target-active {
+  .canvas-icon-btn:hover {
+    background: var(--secondary-background-color, rgba(0,0,0,.05));
+  }
+  .canvas-icon-btn.clear-all-btn {
+    color: var(--error-color, #f44336);
+    border-color: color-mix(in srgb, var(--error-color, #f44336) 30%, transparent);
+  }
+  .canvas-icon-btn.clear-all-btn:hover { opacity: 1; }
+  .canvas-icon-btn.clear-all-btn.drop-target-active {
     opacity: 1;
     transform: scale(1.6);
     border-color: var(--error-color, #f44336);
   }
-  .clear-all-btn.drop-target-active ha-icon { --mdc-icon-size: 22px; }
-  .clear-all-btn.hover {
+  .canvas-icon-btn.clear-all-btn.drop-target-active ha-icon { --mdc-icon-size: 22px; }
+  .canvas-icon-btn.clear-all-btn.hover {
     background: color-mix(in srgb, var(--error-color, #f44336) 25%, transparent);
     transform: scale(1.8);
   }
-  .preset-bar {
+  .canvas-icon-btn.conditions-btn.has-dot::after {
+    content: '';
+    position: absolute;
+    right: -3px;
+    top: -3px;
+    width: 8px;
+    height: 8px;
+    background: var(--primary-color);
+    border-radius: 50%;
+    border: 1.5px solid var(--card-background-color, #fff);
+  }
+  .template-menu {
+    position: absolute;
+    top: 0;
+    right: 40px;
+    min-width: 200px;
+    background: var(--card-background-color, var(--ha-card-background, #fff));
+    border: 1px solid var(--divider-color);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    padding: 4px;
+    z-index: 10;
+  }
+  .template-menu .tpl-item {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 8px 0;
-    flex-wrap: wrap;
-  }
-  .preset-label {
-    font-size: 12px;
-    color: var(--secondary-text-color);
-  }
-  .preset-btn {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    padding: 4px 10px;
-    border: 1px solid var(--divider-color);
-    border-radius: 16px;
-    background: none;
-    color: var(--primary-text-color);
+    padding: 8px 10px;
     cursor: pointer;
-    font-size: 12px;
-    font-family: var(--mdc-typography-font-family, Roboto, sans-serif);
-  }
-  .preset-btn:hover {
-    background: var(--secondary-background-color, rgba(0,0,0,.04));
-  }
-  .preset-form {
-    border: 1px solid var(--divider-color);
-    border-radius: 12px;
-    padding: 10px 12px;
-    gap: 10px;
-  }
-  .preset-form-label {
+    border-radius: 6px;
     font-size: 13px;
-    font-weight: 500;
-    white-space: nowrap;
-  }
-  .preset-apply-btn, .preset-cancel-btn {
-    padding: 6px 14px;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 12px;
-    font-family: var(--mdc-typography-font-family, Roboto, sans-serif);
-    white-space: nowrap;
-  }
-  .preset-apply-btn {
-    background: var(--primary-color);
-    color: var(--text-primary-color, #fff);
-  }
-  .preset-apply-btn[disabled] {
-    opacity: 0.4;
-    cursor: default;
-  }
-  .preset-cancel-btn {
-    background: none;
     color: var(--primary-text-color);
-    border: 1px solid var(--divider-color);
+    font-family: var(--mdc-typography-font-family, Roboto, sans-serif);
+  }
+  .template-menu .tpl-item:hover {
+    background: var(--secondary-background-color, rgba(0,0,0,.05));
+  }
+  .preset-dialog-body {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 320px;
+  }
+  .preset-confirm-text {
+    font-size: 16px;
+    color: var(--primary-text-color);
+    line-height: 1.5;
+    padding: 8px 4px;
+  }
+  .preset-dialog-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+  ha-button.destructive {
+    --primary-color: var(--error-color, #f44336);
+    --mdc-theme-primary: var(--error-color, #f44336);
   }
   .add-item-bar {
     display: flex;
     align-items: center;
     gap: 6px;
-    margin-top: 8px;
+    margin-top: 4px;
     flex-wrap: wrap;
   }
   .add-item-label {
+    display: block;
     font-size: 12px;
     color: var(--secondary-text-color);
-    margin-right: 4px;
+    margin-top: 12px;
+    margin-bottom: 4px;
     font-family: var(--mdc-typography-font-family, Roboto, sans-serif);
   }
   .add-type-btn {
@@ -942,26 +999,4 @@ export const editorStyles = css`
     cursor: pointer;
   }
   .page-tab-delete:hover { opacity: 1; }
-  .page-condition-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 13px;
-    color: var(--secondary-text-color);
-    background: none;
-    border: 1px solid var(--divider-color, #e0e0e0);
-    border-radius: 8px;
-    padding: 4px 10px;
-    cursor: pointer;
-    margin-bottom: 8px;
-    transition: background 0.2s, border-color 0.2s;
-    font-family: inherit;
-  }
-  .page-condition-btn:hover {
-    background: color-mix(in srgb, var(--primary-color) 8%, transparent);
-  }
-  .page-condition-btn.active {
-    border-color: var(--primary-color);
-    color: var(--primary-color);
-  }
 `;

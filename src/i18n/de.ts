@@ -118,15 +118,18 @@ export default {
 
   // Grid layout
   "Remove all buttons": "Alle Tasten entfernen",
-  "Add:": "Hinzufügen:",
+  "Add buttons to grid (click or drag)": "Tasten zum Raster hinzufügen (Klick oder Ziehen)",
 
   // Template / Preset
   "Template:": "Vorlage:",
   "Load": "Laden",
   "Cancel": "Abbrechen",
+  "Back": "Zurück",
+  "Confirm": "Bestätigen",
+  "Apply template": "Vorlage anwenden",
+  "Delete this page": "Diese Seite löschen",
+  "Do you want to load {label}? The current page will be replaced.": "Möchtest du \"{label}\" laden? Die aktuelle Seite wird ersetzt.",
   "Load template": "Vorlage laden",
-  "\"{label}\" with {entities}? The current page will be replaced.": "\"{label}\" mit {entities}? Die aktuelle Seite wird ersetzt.",
-  "\"{label}\"? The current page will be replaced.": "\"{label}\"? Die aktuelle Seite wird ersetzt.",
 
   // Page tabs
   "Page {n}": "Seite {n}",

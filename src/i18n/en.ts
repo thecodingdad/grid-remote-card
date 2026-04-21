@@ -118,15 +118,18 @@ export default {
 
   // Grid layout
   "Remove all buttons": "Remove all buttons",
-  "Add:": "Add:",
+  "Add buttons to grid (click or drag)": "Add buttons to grid (click or drag)",
 
   // Template / Preset
   "Template:": "Template:",
   "Load": "Load",
   "Cancel": "Cancel",
+  "Back": "Back",
+  "Confirm": "Confirm",
+  "Apply template": "Apply template",
+  "Delete this page": "Delete this page",
+  "Do you want to load {label}? The current page will be replaced.": "Do you want to load \"{label}\"? The current page will be replaced.",
   "Load template": "Load template",
-  "\"{label}\" with {entities}? The current page will be replaced.": "\"{label}\" with {entities}? The current page will be replaced.",
-  "\"{label}\"? The current page will be replaced.": "\"{label}\"? The current page will be replaced.",
 
   // Page tabs
   "Page {n}": "Page {n}",

@@ -181,6 +181,9 @@ export class GridRemoteCardEditor extends LitElement {
       _presetSecondaryEntity: { state: true },
       _itemYamlMode:       { state: true },
       _conditionDialogOpen: { state: true },
+      _templateMenuOpen:   { state: true },
+      _dragActiveTick:     { state: true },
+      _presetConfirming:   { state: true },
     };
   }
 
@@ -213,6 +216,10 @@ export class GridRemoteCardEditor extends LitElement {
   _dialogBoxHandler: any = null;
   _dialogBoxEditCard: any = null;
   _conditionDialogOpen = false;
+  _templateMenuOpen = false;
+  _dragActiveTick = 0;
+  _presetConfirming = false;
+  _onTemplateMenuOutsideClick: ((e: MouseEvent) => void) | null = null;
   _sourceDragItemIdx: number | null = null;
   _sourceDragPointerId: number | null = null;
   _onSourceDragMoveBound: any = null;
@@ -358,12 +365,14 @@ export class GridRemoteCardEditor extends LitElement {
     const cellSize = 44;
     const gridStyle = `grid-template-columns:repeat(${cols},${cellSize}px);grid-template-rows:repeat(${rows},${cellSize}px);`;
 
+    const pageCount = this._pageCount;
+    const hasCondition = (this._config.page_conditions?.[this._currentEditorPage]?.length ?? 0) > 0;
+    const dragMode = this._isDragActive();
+
     return html`
-      ${this._renderGridSizeStepper('columns', cols, 1, 7, t(this.hass, 'Columns'), t(this.hass, 'Number of columns in the grid'))}
-      ${this._renderGridSizeStepper('rows', rows, 1, 15, t(this.hass, 'Rows'), t(this.hass, 'Number of rows in the grid'))}
+      ${this._renderGridSizeRow()}
 
       ${this._renderPageTabs()}
-      ${this._renderPresetSelector()}
       <div class="grid-editor-container"
            @pointerdown=${(e: PointerEvent) => this._onGridBgPointerDown(e)}>
         <div class="grid-editor" style="${gridStyle}">
@@ -374,12 +383,30 @@ export class GridRemoteCardEditor extends LitElement {
           ? html`<div class="marquee"
                       style="left:${this._marqueeRect.x}px;top:${this._marqueeRect.y}px;width:${this._marqueeRect.w}px;height:${this._marqueeRect.h}px;"></div>`
           : ''}
-        <button class="clear-all-btn" @click=${() => this._clearAllItems()} title="${t(this.hass, 'Remove all buttons')}">
-          <ha-icon icon="mdi:delete-sweep-outline" style="--mdc-icon-size:20px;"></ha-icon>
-        </button>
+        <div class="canvas-icon-stack ${dragMode ? 'drag-mode' : ''}">
+          <button class="canvas-icon-btn clear-all-btn"
+                  @click=${() => this._clearCurrentPageOrAll()}
+                  title="${t(this.hass, pageCount > 1 ? 'Delete this page' : 'Remove all buttons')}">
+            <ha-icon icon="mdi:delete-sweep-outline" style="--mdc-icon-size:20px;"></ha-icon>
+          </button>
+          <button class="canvas-icon-btn template-btn"
+                  @click=${this._toggleTemplateMenu}
+                  title="${t(this.hass, 'Apply template')}">
+            <ha-icon icon="mdi:view-grid-plus-outline" style="--mdc-icon-size:20px;"></ha-icon>
+          </button>
+          ${pageCount > 1 ? html`
+            <button class="canvas-icon-btn conditions-btn ${hasCondition ? 'has-dot' : ''}"
+                    @click=${() => { this._conditionDialogOpen = true; }}
+                    title="${t(this.hass, 'Conditions')}">
+              <ha-icon icon="mdi:swap-horizontal" style="--mdc-icon-size:20px;"></ha-icon>
+            </button>
+          ` : ''}
+          ${this._templateMenuOpen ? this._renderTemplateMenu() : ''}
+        </div>
       </div>
+      ${this._pendingPreset ? this._renderPresetEntityDialog() : ''}
+      <div class="add-item-label">${t(this.hass, 'Add buttons to grid (click or drag)')}</div>
       <div class="add-item-bar">
-        <span class="add-item-label">${t(this.hass, 'Add:')}</span>
         ${ITEM_TYPES.map(type => html`
           <button class="add-type-btn" @pointerdown=${(e: PointerEvent) => this._onAddBtnPointerDown(e, type)} title="${t(this.hass, ITEMS[type].cls.label)}">
             <ha-icon icon="${ITEMS[type].cls.editorIcon}" style="--mdc-icon-size:16px;"></ha-icon>
@@ -391,49 +418,113 @@ export class GridRemoteCardEditor extends LitElement {
     `;
   }
 
-  _renderPresetSelector() {
-    if (this._pendingPreset) {
-      const preset = REMOTE_PRESETS[this._pendingPreset];
-      const hasSecondary = !!preset.secondary_entity_domain;
-      const canApply = this._presetEntity && (!hasSecondary || this._presetSecondaryEntity);
-      return html`
-        <div class="preset-bar preset-form">
-          <ha-icon icon="${preset.icon}" style="--mdc-icon-size:18px;"></ha-icon>
-          <span class="preset-form-label">${preset.label}</span>
-          <ha-selector
-            .hass=${this.hass}
-            .selector=${{ entity: { domain: preset.entity_domain, ...(preset.entity_integration ? { integration: preset.entity_integration } : {}) } }}
-            .value=${this._presetEntity}
-            .label=${preset.entity_label}
-            @value-changed=${(e: CustomEvent) => { this._presetEntity = e.detail.value || ''; }}
-            style="flex:1;min-width:180px;"
-          ></ha-selector>
-          ${hasSecondary ? html`
-            <ha-selector
-              .hass=${this.hass}
-              .selector=${{ entity: { domain: preset.secondary_entity_domain, ...(preset.secondary_entity_integration ? { integration: preset.secondary_entity_integration } : {}) } }}
-              .value=${this._presetSecondaryEntity}
-              .label=${preset.secondary_entity_label}
-              @value-changed=${(e: CustomEvent) => { this._presetSecondaryEntity = e.detail.value || ''; }}
-              style="flex:1;min-width:180px;"
-            ></ha-selector>
-          ` : ''}
-          <button class="preset-apply-btn" @click=${() => this._confirmApplyPreset()}
-                  ?disabled=${!canApply}>${t(this.hass, 'Load')}</button>
-          <button class="preset-cancel-btn" @click=${() => { this._pendingPreset = null; this._presetEntity = ''; this._presetSecondaryEntity = ''; }}>${t(this.hass, 'Cancel')}</button>
-        </div>
-      `;
+  _isDragActive(): boolean {
+    return this._gridDragState !== null;
+  }
+
+  _clearCurrentPageOrAll() {
+    if (this._pageCount > 1) {
+      this._deletePage(this._currentEditorPage);
+    } else {
+      this._clearAllItems();
     }
+  }
+
+  _toggleTemplateMenu = (e?: Event) => {
+    e?.stopPropagation();
+    this._templateMenuOpen = !this._templateMenuOpen;
+    if (this._templateMenuOpen) {
+      this._onTemplateMenuOutsideClick = () => { this._templateMenuOpen = false; this._removeTemplateMenuOutsideClick(); };
+      setTimeout(() => document.addEventListener('click', this._onTemplateMenuOutsideClick!), 0);
+    } else {
+      this._removeTemplateMenuOutsideClick();
+    }
+  };
+
+  _removeTemplateMenuOutsideClick() {
+    if (this._onTemplateMenuOutsideClick) {
+      document.removeEventListener('click', this._onTemplateMenuOutsideClick);
+      this._onTemplateMenuOutsideClick = null;
+    }
+  }
+
+  _selectTemplate(key: string) {
+    this._templateMenuOpen = false;
+    this._removeTemplateMenuOutsideClick();
+    const preset = REMOTE_PRESETS[key];
+    this._pendingPreset = key;
+    this._presetEntity = '';
+    this._presetSecondaryEntity = '';
+    this._presetConfirming = !preset.entity_domain;
+  }
+
+  _cancelPresetDialog = () => {
+    this._pendingPreset = null;
+    this._presetEntity = '';
+    this._presetSecondaryEntity = '';
+    this._presetConfirming = false;
+  };
+
+  _renderTemplateMenu() {
     return html`
-      <div class="preset-bar">
-        <span class="preset-label">${t(this.hass, 'Template:')}</span>
+      <div class="template-menu" @click=${(e: Event) => e.stopPropagation()}>
         ${Object.entries(REMOTE_PRESETS).map(([key, preset]) => html`
-          <button class="preset-btn" @click=${() => { if (preset.entity_domain) { this._pendingPreset = key; this._presetEntity = ''; this._presetSecondaryEntity = ''; } else { this._confirmApplyPresetSimple(key); } }} title="${preset.label}">
-            <ha-icon icon="${preset.icon}" style="--mdc-icon-size:16px;"></ha-icon>
+          <div class="tpl-item" @click=${() => this._selectTemplate(key)}>
+            <ha-icon icon="${preset.icon}" style="--mdc-icon-size:18px;"></ha-icon>
             <span>${preset.label}</span>
-          </button>
+          </div>
         `)}
       </div>
+    `;
+  }
+
+  _renderPresetEntityDialog() {
+    const preset = REMOTE_PRESETS[this._pendingPreset];
+    const hasSecondary = !!preset.secondary_entity_domain;
+    const canApply = !!this._presetEntity && (!hasSecondary || !!this._presetSecondaryEntity);
+    const confirming = this._presetConfirming;
+    const showConfirmStep = confirming || !preset.entity_domain;
+    const hasPrevStep = showConfirmStep && !!preset.entity_domain;
+    return html`
+      <ha-dialog open
+                 @closed=${(e: Event) => { e.stopPropagation(); this._cancelPresetDialog(); }}
+                 .heading=${preset.label}>
+        <div class="preset-dialog-body">
+          ${showConfirmStep ? html`
+            <div class="preset-confirm-text">
+              ${t(this.hass, 'Do you want to load {label}? The current page will be replaced.', { label: preset.label })}
+            </div>
+          ` : html`
+            <ha-selector
+              .hass=${this.hass}
+              .selector=${{ entity: { domain: preset.entity_domain, ...(preset.entity_integration ? { integration: preset.entity_integration } : {}) } }}
+              .value=${this._presetEntity}
+              .label=${preset.entity_label}
+              @value-changed=${(e: CustomEvent) => { this._presetEntity = e.detail.value || ''; }}
+            ></ha-selector>
+            ${hasSecondary ? html`
+              <ha-selector
+                .hass=${this.hass}
+                .selector=${{ entity: { domain: preset.secondary_entity_domain, ...(preset.secondary_entity_integration ? { integration: preset.secondary_entity_integration } : {}) } }}
+                .value=${this._presetSecondaryEntity}
+                .label=${preset.secondary_entity_label}
+                @value-changed=${(e: CustomEvent) => { this._presetSecondaryEntity = e.detail.value || ''; }}
+              ></ha-selector>
+            ` : ''}
+          `}
+        </div>
+        <div slot="footer" class="preset-dialog-footer">
+          <ha-button appearance="filled"
+            @click=${hasPrevStep ? () => { this._presetConfirming = false; } : this._cancelPresetDialog}>
+            ${t(this.hass, hasPrevStep ? 'Back' : 'Cancel')}
+          </ha-button>
+          <ha-button variant="danger"
+            ?disabled=${!showConfirmStep && !canApply}
+            @click=${showConfirmStep ? () => this._confirmApplyPreset() : () => { this._presetConfirming = true; }}>
+            ${t(this.hass, showConfirmStep ? 'Confirm' : 'Load')}
+          </ha-button>
+        </div>
+      </ha-dialog>
     `;
   }
 
@@ -546,88 +637,52 @@ export class GridRemoteCardEditor extends LitElement {
 
   _confirmApplyPreset() {
     const key = this._pendingPreset;
-    const entityId = this._presetEntity;
-    const secondaryEntityId = this._presetSecondaryEntity;
-    const preset = REMOTE_PRESETS[key];
-    if (!preset || !entityId) return;
-
-    const entityText = secondaryEntityId
-      ? `${entityId} + ${secondaryEntityId}`
-      : entityId;
-
-    this.dispatchEvent(new CustomEvent('show-dialog', {
-      bubbles: true, composed: true,
-      detail: {
-        dialogTag: 'dialog-box',
-        dialogImport: () => Promise.resolve(),
-        dialogParams: {
-          title: t(this.hass, 'Load template'),
-          text: t(this.hass, '"{label}" with {entities}? The current page will be replaced.', { label: preset.label, entities: entityText }),
-          confirmText: t(this.hass, 'Load'),
-          dismissText: t(this.hass, 'Cancel'),
-          destructive: true,
-          confirm: () => {
-            let items, cols, rows;
-            if (preset.dynamic) {
-              const built = this._buildMediaPlayerItems(entityId);
-              items = built.items;
-              cols = built.columns;
-              rows = built.rows;
-            } else {
-              items = JSON.parse(JSON.stringify(preset.items));
-              cols = preset.columns;
-              rows = preset.rows;
-            }
-            for (const item of items) {
-              const eid = (item._secondary && secondaryEntityId) ? secondaryEntityId : entityId;
-              delete item._secondary;
-              // Apply entity to items that need it (media → entity_id, source → source_entity)
-              ITEMS[item.type as ItemType]?.cls.applyPresetEntity(item, eid);
-              // Apply entity to all perform-action tap/hold actions via data.entity_id
-              for (const actionKey of ['tap_action', 'hold_action']) {
-                if (item[actionKey]?.action === 'perform-action') {
-                  item[actionKey].data = { ...item[actionKey].data, entity_id: eid };
-                }
-              }
-              // Apply entity to sub-button actions (dpad, color_buttons, numbers)
-              if (item.buttons) {
-                for (const btn of Object.values(item.buttons) as any[]) {
-                  for (const actionKey of ['tap_action', 'hold_action']) {
-                    if (btn[actionKey]?.action === 'perform-action') {
-                      btn[actionKey].data = { ...btn[actionKey].data, entity_id: eid };
-                    }
-                  }
-                }
-              }
-            }
-            this._applyPresetToCurrentPage(items, cols, rows);
-          },
-        },
-      },
-    }));
-  }
-
-  _confirmApplyPresetSimple(key: string) {
     const preset = REMOTE_PRESETS[key];
     if (!preset) return;
-    this.dispatchEvent(new CustomEvent('show-dialog', {
-      bubbles: true, composed: true,
-      detail: {
-        dialogTag: 'dialog-box',
-        dialogImport: () => Promise.resolve(),
-        dialogParams: {
-          title: t(this.hass, 'Load template'),
-          text: t(this.hass, '"{label}"? The current page will be replaced.', { label: preset.label }),
-          confirmText: t(this.hass, 'Load'),
-          dismissText: t(this.hass, 'Cancel'),
-          destructive: true,
-          confirm: () => {
-            const items = JSON.parse(JSON.stringify(preset.items));
-            this._applyPresetToCurrentPage(items, preset.columns, preset.rows);
-          },
-        },
-      },
-    }));
+
+    if (!preset.entity_domain) {
+      const items = JSON.parse(JSON.stringify(preset.items));
+      this._applyPresetToCurrentPage(items, preset.columns, preset.rows);
+      this._cancelPresetDialog();
+      return;
+    }
+
+    const entityId = this._presetEntity;
+    const secondaryEntityId = this._presetSecondaryEntity;
+    if (!entityId) return;
+
+    let items, cols, rows;
+    if (preset.dynamic) {
+      const built = this._buildMediaPlayerItems(entityId);
+      items = built.items;
+      cols = built.columns;
+      rows = built.rows;
+    } else {
+      items = JSON.parse(JSON.stringify(preset.items));
+      cols = preset.columns;
+      rows = preset.rows;
+    }
+    for (const item of items) {
+      const eid = (item._secondary && secondaryEntityId) ? secondaryEntityId : entityId;
+      delete item._secondary;
+      ITEMS[item.type as ItemType]?.cls.applyPresetEntity(item, eid);
+      for (const actionKey of ['tap_action', 'hold_action']) {
+        if (item[actionKey]?.action === 'perform-action') {
+          item[actionKey].data = { ...item[actionKey].data, entity_id: eid };
+        }
+      }
+      if (item.buttons) {
+        for (const btn of Object.values(item.buttons) as any[]) {
+          for (const actionKey of ['tap_action', 'hold_action']) {
+            if (btn[actionKey]?.action === 'perform-action') {
+              btn[actionKey].data = { ...btn[actionKey].data, entity_id: eid };
+            }
+          }
+        }
+      }
+    }
+    this._applyPresetToCurrentPage(items, cols, rows);
+    this._cancelPresetDialog();
   }
 
   _renderPageTabs() {
@@ -638,27 +693,14 @@ export class GridRemoteCardEditor extends LitElement {
         <button class="page-tab ${i === this._currentEditorPage ? 'active' : ''}"
                 @click=${() => { this._currentEditorPage = i; this._clearSelection(); this._fireConfigChanged(); }}>
           ${t(this.hass, 'Page {n}', { n: i + 1 })}
-          ${count > 1 ? html`
-            <span class="page-tab-delete" @click=${(e: MouseEvent) => { e.stopPropagation(); this._deletePage(i); }}
-                  title="${t(this.hass, 'Delete page')}">&times;</span>
-          ` : ''}
         </button>
       `);
     }
-    const currentConds = this._config.page_conditions?.[this._currentEditorPage];
-    const hasCondition = currentConds?.length > 0;
     return html`
       <div class="page-tabs-bar">
         ${tabs}
         <button class="page-tab page-tab-add" @click=${this._addPage} title="${t(this.hass, 'New page')}">+</button>
       </div>
-      ${count > 1 ? html`
-        <button class="page-condition-btn ${hasCondition ? 'active' : ''}"
-                @click=${() => { this._conditionDialogOpen = true; }}>
-          <ha-icon icon="mdi:swap-horizontal" style="--mdc-icon-size:16px;"></ha-icon>
-          ${t(this.hass, 'Conditions')}${hasCondition ? ' ' + t(this.hass, '(active)') : ''}
-        </button>
-      ` : ''}
     `;
   }
 
@@ -1057,7 +1099,8 @@ export class GridRemoteCardEditor extends LitElement {
     const target = e.target as HTMLElement;
     // Ignore if the event originated from an item, the delete button, or the trash zone
     if (target.closest('.grid-editor-item')) return;
-    if (target.closest('.clear-all-btn')) return;
+    if (target.closest('.canvas-icon-stack')) return;
+    if (target.closest('.template-menu')) return;
     const container = e.currentTarget as HTMLElement;
     const gridEl = container.querySelector('.grid-editor') as HTMLElement | null;
     if (!gridEl) return;
@@ -1297,6 +1340,7 @@ export class GridRemoteCardEditor extends LitElement {
       originalPageCount: this._pageCount,
       originalCurrentPage: this._currentEditorPage,
     };
+    this._dragActiveTick++;
 
     const onMove = (ev: PointerEvent) => this._onGridDragMove(ev);
     const onUp = (ev: PointerEvent) => { this._onGridDragEnd(ev); cleanup(); };
@@ -1462,6 +1506,7 @@ export class GridRemoteCardEditor extends LitElement {
       this._revertAutoCreatedPages(d.originalPageCount, d.originalCurrentPage);
     }
     this._gridDragState = null;
+    this._dragActiveTick++;
     // Force a re-render (same effect as ESC) without clearing the selection.
     // Needed after cross-page drops where residual state otherwise blocks
     // subsequent marquee interactions.
@@ -1483,6 +1528,7 @@ export class GridRemoteCardEditor extends LitElement {
       this._revertAutoCreatedPages(d.originalPageCount, d.originalCurrentPage);
     }
     this._gridDragState = null;
+    this._dragActiveTick++;
   }
 
   /** Revert pages that were auto-created via +Tab hover during a drag that
@@ -2241,28 +2287,28 @@ export class GridRemoteCardEditor extends LitElement {
     return { minCols, minRows };
   }
 
-  _renderGridSizeStepper(name: string, value: number, sliderMin: number, sliderMax: number, label: string, helper: string) {
+  _renderGridSizeRow() {
     const { minCols, minRows } = this._getMinGridSize();
-    const effectiveMin = name === 'columns' ? minCols : minRows;
-    const clampedSliderMin = Math.max(sliderMin, effectiveMin);
+    const cols = this._config.columns || 3;
+    const rows = this._config.rows || 9;
     return html`
-      <div class="slider-input-row">
-        <div class="slider-input-label">${label}</div>
-        <div class="slider-input-controls">
-          <ha-slider
-            .min=${clampedSliderMin} .max=${sliderMax} .step=${1}
-            .value=${Math.max(Math.min(value, sliderMax), clampedSliderMin)}
-            pin
-            @change=${(e: Event) => this._onGridSizeChanged(name, Number((e.target as HTMLInputElement).value))}
-          ></ha-slider>
-          <ha-textfield
-            .value=${String(value)}
-            type="number" .min=${String(effectiveMin)} step="1"
-            style="width:5em;"
-            @change=${(e: Event) => this._onGridSizeChanged(name, parseInt((e.target as HTMLInputElement).value) || effectiveMin)}
-          ></ha-textfield>
-        </div>
-        <div class="slider-input-helper">${helper}</div>
+      <div class="grid-size-row">
+        <span class="grid-label">${t(this.hass, 'Grid')}</span>
+        <span class="axis-label">${t(this.hass, 'Cols')}</span>
+        ${this._renderStepper('columns', cols, minCols)}
+        <span class="axis-label">${t(this.hass, 'Rows')}</span>
+        ${this._renderStepper('rows', rows, minRows)}
+      </div>
+    `;
+  }
+
+  _renderStepper(name: string, value: number, min: number) {
+    return html`
+      <div class="axis-stepper">
+        <button ?disabled=${value <= min}
+                @click=${() => this._onGridSizeChanged(name, value - 1)}>−</button>
+        <span class="num">${value}</span>
+        <button @click=${() => this._onGridSizeChanged(name, value + 1)}>+</button>
       </div>
     `;
   }
