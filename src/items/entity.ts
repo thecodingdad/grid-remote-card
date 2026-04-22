@@ -65,9 +65,12 @@ export class EntityItem extends ItemBase {
     const entityId = item.entity_id;
     const stateObj = entityId && this.hass ? this.hass.states[entityId] : null;
     const friendlyName = stateObj?.attributes?.friendly_name || entityId || '';
+    const isActive = item.show_state_background && stateObj && !INACTIVE_STATES.has(stateObj.state);
     let bgColor = resolveColor(item.background_color || cfg.button_background_color || '');
-    if (!bgColor && item.show_state_background && stateObj && !INACTIVE_STATES.has(stateObj.state)) {
-      bgColor = 'color-mix(in srgb, var(--state-active-color, var(--primary-color)) 15%, transparent)';
+    if (isActive) {
+      const activeColor = resolveColor((item as any).active_background_color || '');
+      bgColor = activeColor
+        || 'color-mix(in srgb, var(--state-active-color, var(--primary-color)) 15%, transparent)';
     }
     const style = bgColor ? `--grc-btn-bg:${bgColor}` : '';
     const variantClass = VARIANT_CSS_CLASS[item.variant || 'pill'] || '';
@@ -118,6 +121,7 @@ export function renderEntityEditor(
     variant: item.variant || 'pill',
     entity_id: item.entity_id ?? '',
     show_state_background: item.show_state_background ?? false,
+    active_background_color: (item as any).active_background_color ?? '',
     icon: item.icon ?? '',
     text: item.text ?? '',
     icon_color: item.icon_color ?? '',
@@ -128,6 +132,7 @@ export function renderEntityEditor(
     editor._variantField(),
     { name: 'entity_id', selector: { entity: {} } },
     { name: 'show_state_background', selector: { boolean: {} } },
+    { name: 'active_background_color', selector: { ui_color: {} } },
     ...editor._basisFields(),
   ];
 
@@ -137,7 +142,7 @@ export function renderEntityEditor(
     hold_repeat: item.hold_repeat ?? false,
     hold_repeat_interval: item.hold_repeat_interval ?? '',
   };
-  const actionsSchema = editor._actionFields();
+  const actionsSchema = editor._actionFields({ hasEntity: true });
 
   return html`
     ${editor._renderCollapsible(`item-${index}-basis`, t(editor.hass, 'Basis'), true,

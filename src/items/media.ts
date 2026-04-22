@@ -22,7 +22,7 @@ import { rippleStyles } from './shared-styles';
 import { renderSourceListContent, renderSourcePopupConfig } from './source';
 
 const SCHEMA_MEDIA_ENTITY = [
-  { name: 'entity_id', selector: { entity: { include_domains: ['media_player'] } } },
+  { name: 'entity_id', selector: { entity: { domain: ['media_player', 'image', 'camera'] } } },
 ];
 
 const SCHEMA_MEDIA_OPTIONS = [
@@ -271,7 +271,7 @@ export function renderMediaEditor(
     hold_repeat: item.hold_repeat ?? false,
     hold_repeat_interval: item.hold_repeat_interval ?? '',
   };
-  const actionsSchema = editor._actionFields();
+  const actionsSchema = editor._actionFields({ hasEntity: true });
 
   return html`
     ${editor._renderCollapsible(`item-${index}-basis`, t(editor.hass, 'Basis'), true,

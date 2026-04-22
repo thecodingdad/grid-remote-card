@@ -166,7 +166,7 @@ export function renderNumbersEditor(
     hold_repeat: item.hold_repeat ?? false,
     hold_repeat_interval: item.hold_repeat_interval ?? '',
   };
-  const actionsSchema = editor._actionFields();
+  const actionsSchema = editor._actionFields({ hasEntity: false });
 
   const optionsData = {
     hide_dash: item.hide_dash ?? false,
@@ -188,7 +188,7 @@ export function renderNumbersEditor(
         const keyData = {
           tap_action: (item.buttons?.[key] as any)?.tap_action ?? {},
         };
-        const keySchema = [{ name: 'tap_action', selector: { ui_action: {} } }];
+        const keySchema = editor._uiActionSchema('tap_action', false);
         return html`
           <div class="button-item" style="margin-left:8px;">
             <div class="button-item-header ${isSubOpen ? 'editor-open' : ''}"

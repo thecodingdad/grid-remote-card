@@ -80,6 +80,8 @@ export default {
   "Scroll text": "Text scrollen",
   "Fallback icon": "Ersatzsymbol",
   "Background when active": "Hintergrund wenn aktiv",
+  "Active background color": "Hintergrundfarbe wenn aktiv",
+  "Color used when entity is active (empty = default tint)": "Farbe wenn Entität aktiv (leer = Standard-Tönung)",
 
   // Editor helpers
   "Button color": "Tastenfarbe",

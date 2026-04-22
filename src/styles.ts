@@ -401,6 +401,17 @@ export const editorStyles = css`
     height: 38px;
     line-height: 38px;
   }
+  .item-size-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 4px 0;
+  }
+  .item-size-row .axis-label {
+    font-size: 12px;
+    color: var(--secondary-text-color);
+  }
 
   .visual-selector-label {
     font-size: 12px;

@@ -89,7 +89,7 @@ export function renderButtonEditor(
     hold_repeat: item.hold_repeat ?? false,
     hold_repeat_interval: item.hold_repeat_interval ?? '',
   };
-  const actionsSchema = editor._actionFields();
+  const actionsSchema = editor._actionFields({ hasEntity: false });
 
   return html`
     ${editor._renderCollapsible(`item-${index}-basis`, t(editor.hass, 'Basis'), true,

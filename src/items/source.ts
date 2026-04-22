@@ -26,7 +26,7 @@ import {
 } from './shared-styles';
 
 const SCHEMA_SOURCE_ENTITY = [
-  { name: 'source_entity', selector: { entity: { include_domains: ['select', 'media_player'] } } },
+  { name: 'source_entity', selector: { entity: { domain: ['select', 'media_player'] } } },
 ];
 
 @customElement('grc-source-item')
@@ -232,7 +232,7 @@ export function renderSourceEditor(
     hold_repeat: item.hold_repeat ?? false,
     hold_repeat_interval: item.hold_repeat_interval ?? '',
   };
-  const actionsSchema = editor._actionFields();
+  const actionsSchema = editor._actionFields({ hasEntity: false });
 
   return html`
     ${editor._renderCollapsible(`item-${index}-basis`, t(editor.hass, 'Basis'), true,

@@ -92,6 +92,7 @@ export interface Item {
   entity_id?: string;
   source_entity?: string;
   show_state_background?: boolean;
+  active_background_color?: string;
 
   // Slider
   orientation?: 'horizontal' | 'vertical';

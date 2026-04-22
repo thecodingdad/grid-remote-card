@@ -266,7 +266,7 @@ function renderDpadBtnSubEditor(
     hold_repeat: btnCfg.hold_repeat ?? false,
     hold_repeat_interval: btnCfg.hold_repeat_interval ?? '',
   };
-  const actionsSchema = editor._actionFields();
+  const actionsSchema = editor._actionFields({ hasEntity: false });
 
   return html`
     ${editor._renderCollapsible(`item-${index}-${dir}-basis`, t(editor.hass, 'Basis'), true,

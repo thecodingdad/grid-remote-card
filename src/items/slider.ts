@@ -228,7 +228,7 @@ export class SliderItem extends ItemBase {
     const min = item.min ?? defaults?.min ?? 0;
     const max = item.max ?? defaults?.max ?? 100;
     const step = item.step ?? defaults?.step ?? 1;
-    const icon = item.icon || defaults?.icon || 'mdi:tune-variant';
+    const icon = item.icon || stateObj?.attributes?.icon || defaults?.icon || 'mdi:tune-variant';
     const iconColor = resolveColor(item.icon_color || this.card._config.icon_color || '');
     const disabled = !stateObj || stateObj.state === 'unavailable';
     const showIcon = item.show_icon !== false;

@@ -496,7 +496,10 @@ export class GridRemoteCard extends LitElement {
     }
 
     if (!actionConfig || actionConfig.action === 'none') return false;
-    this._fireHassAction({ [`${actionType}_action`]: actionConfig }, actionType);
+    const entity = (item as any).entity_id || (item as any).source_entity;
+    const cfg: Record<string, any> = { [`${actionType}_action`]: actionConfig };
+    if (entity) cfg.entity = entity;
+    this._fireHassAction(cfg, actionType);
     return true;
   }
 

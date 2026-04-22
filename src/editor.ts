@@ -111,6 +111,7 @@ const EDITOR_LABELS: Record<string, string> = {
   scroll_info: 'Scroll text',
   fallback_icon: 'Fallback icon',
   show_state_background: 'Background when active',
+  active_background_color: 'Active background color',
 };
 
 const EDITOR_HELPERS: Record<string, string> = {
@@ -146,6 +147,7 @@ const EDITOR_HELPERS: Record<string, string> = {
   scroll_info: 'Scroll long text continuously instead of cutting off',
   fallback_icon: 'Icon if no cover available (default: mdi:music)',
   show_state_background: 'Subtly tint background when entity is active',
+  active_background_color: 'Color used when entity is active (empty = default tint)',
 };
 
 interface SchemaField { name: string; [k: string]: any }
@@ -816,16 +818,46 @@ export class GridRemoteCardEditor extends LitElement {
     const meta = ITEMS[item.type];
     if (!meta) return '';
     const { data, schema } = meta.cls.spanSchema(item);
+    // Extract field names (col_span / row_span) from the grid schema
+    const fields: string[] = [];
+    for (const entry of schema) {
+      if (entry.type === 'grid' && Array.isArray(entry.schema)) {
+        for (const f of entry.schema) fields.push(f.name);
+      } else if (entry.name) {
+        fields.push(entry.name);
+      }
+    }
+    const renderSpanStepper = (name: string, label: string) => {
+      const value = data[name] ?? 1;
+      return html`
+        <span class="axis-label">${label}</span>
+        <div class="axis-stepper">
+          <button ?disabled=${value <= 1}
+                  @click=${() => this._onSpanStepper(index, name, value - 1)}>−</button>
+          <span class="num">${value}</span>
+          <button @click=${() => this._onSpanStepper(index, name, value + 1)}>+</button>
+        </div>
+      `;
+    };
     return html`
       ${this._renderCollapsible(`item-${index}-span`, t(this.hass, 'Size'), false, html`
-        <ha-form .hass=${this.hass}
-          .data=${data}
-          .schema=${schema}
-          .computeLabel=${(s: any) => _label(this.hass, s)} .computeHelper=${(s: any) => _helper(this.hass, s)}
-          @value-changed=${(e: CustomEvent) => this._onSpanChanged(e, index)}
-        ></ha-form>
+        <div class="item-size-row">
+          ${fields.includes('col_span') ? renderSpanStepper('col_span', t(this.hass, 'Cols')) : ''}
+          ${fields.includes('row_span') ? renderSpanStepper('row_span', t(this.hass, 'Rows')) : ''}
+        </div>
       `)}
     `;
+  }
+
+  _onSpanStepper(index: number, name: string, newValue: number) {
+    const items = [...this._items];
+    const item: Item = { ...items[index] };
+    const meta = ITEMS[item.type];
+    if (!meta) return;
+    const { data } = meta.cls.spanSchema(item);
+    const val: Record<string, number> = { ...data, [name]: Math.max(1, newValue) };
+    const fakeEvent = { stopPropagation() {}, detail: { value: val } } as unknown as CustomEvent;
+    this._onSpanChanged(fakeEvent, index);
   }
 
   _onSpanChanged(e: CustomEvent, index: number) {
@@ -1999,12 +2031,17 @@ export class GridRemoteCardEditor extends LitElement {
     return SCHEMA_BUTTON_BASIS;
   }
 
-  /** Common action fields (tap/hold + hold_repeat). */
-  _actionFields(opts: { withHoldRepeat?: boolean } = {}): any[] {
-    const { withHoldRepeat = true } = opts;
+  /** Common action fields (tap/hold + hold_repeat).
+   *  When `hasEntity` is false, more-info and toggle are removed from the
+   *  action dropdown because they require an entity to operate on. */
+  _actionFields(opts: { withHoldRepeat?: boolean; hasEntity?: boolean } = {}): any[] {
+    const { withHoldRepeat = true, hasEntity = false } = opts;
+    const uiAction = hasEntity
+      ? {}
+      : { actions: ['navigate', 'url', 'perform-action', 'assist', 'none'] };
     const fields: any[] = [
-      { name: 'tap_action', selector: { ui_action: {} } },
-      { name: 'hold_action', selector: { ui_action: {} } },
+      { name: 'tap_action', selector: { ui_action: uiAction } },
+      { name: 'hold_action', selector: { ui_action: uiAction } },
     ];
     if (withHoldRepeat) {
       fields.push(
@@ -2013,6 +2050,15 @@ export class GridRemoteCardEditor extends LitElement {
       );
     }
     return fields;
+  }
+
+  /** Schema for a single ui_action field (sub-button tap_action).
+   *  When `hasEntity` is false, more-info and toggle are excluded. */
+  _uiActionSchema(name: string, hasEntity = false): any[] {
+    const uiAction = hasEntity
+      ? {}
+      : { actions: ['navigate', 'url', 'perform-action', 'assist', 'none'] };
+    return [{ name, selector: { ui_action: uiAction } }];
   }
 
   /** Render a single unified ha-form that is routed through
@@ -2144,6 +2190,8 @@ export class GridRemoteCardEditor extends LitElement {
         case 'icon_color':
         case 'text_color':
         case 'background_color':
+        case 'active_background_color':
+        case 'fill_color':
         case 'attribute':
         case 'fallback_icon':
           if (v) item[key] = v;
