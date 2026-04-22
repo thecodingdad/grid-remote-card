@@ -65,12 +65,11 @@ export class EntityItem extends ItemBase {
     const entityId = item.entity_id;
     const stateObj = entityId && this.hass ? this.hass.states[entityId] : null;
     const friendlyName = stateObj?.attributes?.friendly_name || entityId || '';
-    const isActive = item.show_state_background && stateObj && !INACTIVE_STATES.has(stateObj.state);
+    const isActive = stateObj && !INACTIVE_STATES.has(stateObj.state);
     let bgColor = resolveColor(item.background_color || cfg.button_background_color || '');
     if (isActive) {
-      const activeColor = resolveColor((item as any).active_background_color || '');
-      bgColor = activeColor
-        || 'color-mix(in srgb, var(--state-active-color, var(--primary-color)) 15%, transparent)';
+      const activeBg = resolveColor((item as any).active_background_color || '');
+      if (activeBg) bgColor = activeBg;
     }
     const style = bgColor ? `--grc-btn-bg:${bgColor}` : '';
     const variantClass = VARIANT_CSS_CLASS[item.variant || 'pill'] || '';
@@ -80,13 +79,15 @@ export class EntityItem extends ItemBase {
       const textColor = resolveColor(item.text_color || cfg.text_color || '');
       content = html`<span class="btn-text" style="${textColor ? `color:${textColor}` : ''}">${item.text}</span>`;
     } else if (stateObj) {
-      const iconColor = resolveColor(item.icon_color || '');
+      const activeIcon = resolveColor((item as any).active_icon_color || '');
+      const baseIconColor = resolveColor(item.icon_color || '');
+      const effectiveIconColor = (isActive && activeIcon) ? activeIcon : baseIconColor;
       content = html`<state-badge
         .hass=${this.hass}
         .stateObj=${stateObj}
         .overrideIcon=${item.icon || ''}
-        .stateColor=${!iconColor}
-        .color=${iconColor || undefined}
+        .stateColor=${!effectiveIconColor}
+        .color=${effectiveIconColor || undefined}
         style="--mdc-icon-size:25px;width:auto;height:auto;"
       ></state-badge>`;
     } else if (item.icon) {
@@ -120,8 +121,8 @@ export function renderEntityEditor(
   const basisData = {
     variant: item.variant || 'pill',
     entity_id: item.entity_id ?? '',
-    show_state_background: item.show_state_background ?? false,
     active_background_color: (item as any).active_background_color ?? '',
+    active_icon_color: (item as any).active_icon_color ?? '',
     icon: item.icon ?? '',
     text: item.text ?? '',
     icon_color: item.icon_color ?? '',
@@ -131,9 +132,13 @@ export function renderEntityEditor(
   const basisSchema = [
     editor._variantField(),
     { name: 'entity_id', selector: { entity: {} } },
-    { name: 'show_state_background', selector: { boolean: {} } },
+    { name: 'icon', selector: { icon: {} } },
+    { name: 'text', selector: { text: {} } },
+    { name: 'icon_color', selector: { ui_color: {} } },
+    { name: 'active_icon_color', selector: { ui_color: {} } },
+    { name: 'text_color', selector: { ui_color: {} } },
+    { name: 'background_color', selector: { ui_color: {} } },
     { name: 'active_background_color', selector: { ui_color: {} } },
-    ...editor._basisFields(),
   ];
 
   const actionsData = {

@@ -79,7 +79,9 @@ export default {
   "Fallback icon": "Fallback icon",
   "Background when active": "Background when active",
   "Active background color": "Active background color",
-  "Color used when entity is active (empty = default tint)": "Color used when entity is active (empty = default tint)",
+  "Active icon color": "Active icon color",
+  "Background used when entity is active (empty = same as normal)": "Background used when entity is active (empty = same as normal)",
+  "Icon color used when entity is active (empty = same as normal)": "Icon color used when entity is active (empty = same as normal)",
 
   // Editor helpers
   "Button color": "Button color",

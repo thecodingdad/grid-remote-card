@@ -112,6 +112,7 @@ const EDITOR_LABELS: Record<string, string> = {
   fallback_icon: 'Fallback icon',
   show_state_background: 'Background when active',
   active_background_color: 'Active background color',
+  active_icon_color: 'Active icon color',
 };
 
 const EDITOR_HELPERS: Record<string, string> = {
@@ -147,7 +148,8 @@ const EDITOR_HELPERS: Record<string, string> = {
   scroll_info: 'Scroll long text continuously instead of cutting off',
   fallback_icon: 'Icon if no cover available (default: mdi:music)',
   show_state_background: 'Subtly tint background when entity is active',
-  active_background_color: 'Color used when entity is active (empty = default tint)',
+  active_background_color: 'Background used when entity is active (empty = same as normal)',
+  active_icon_color: 'Icon color used when entity is active (empty = same as normal)',
 };
 
 interface SchemaField { name: string; [k: string]: any }
@@ -842,7 +844,7 @@ export class GridRemoteCardEditor extends LitElement {
     return html`
       ${this._renderCollapsible(`item-${index}-span`, t(this.hass, 'Size'), false, html`
         <div class="item-size-row">
-          ${fields.includes('col_span') ? renderSpanStepper('col_span', t(this.hass, 'Cols')) : ''}
+          ${fields.includes('col_span') ? renderSpanStepper('col_span', t(this.hass, 'Columns')) : ''}
           ${fields.includes('row_span') ? renderSpanStepper('row_span', t(this.hass, 'Rows')) : ''}
         </div>
       `)}
@@ -2191,6 +2193,7 @@ export class GridRemoteCardEditor extends LitElement {
         case 'text_color':
         case 'background_color':
         case 'active_background_color':
+        case 'active_icon_color':
         case 'fill_color':
         case 'attribute':
         case 'fallback_icon':
@@ -2339,8 +2342,7 @@ export class GridRemoteCardEditor extends LitElement {
     const rows = this._config.rows || 9;
     return html`
       <div class="grid-size-row">
-        <span class="grid-label">${t(this.hass, 'Grid')}</span>
-        <span class="axis-label">${t(this.hass, 'Cols')}</span>
+        <span class="axis-label">${t(this.hass, 'Columns')}</span>
         ${this._renderStepper('columns', cols, minCols)}
         <span class="axis-label">${t(this.hass, 'Rows')}</span>
         ${this._renderStepper('rows', rows, minRows)}

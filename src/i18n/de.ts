@@ -79,7 +79,9 @@ export default {
   "Fallback icon": "Ersatzsymbol",
   "Background when active": "Hintergrund wenn aktiv",
   "Active background color": "Hintergrundfarbe wenn aktiv",
-  "Color used when entity is active (empty = default tint)": "Farbe wenn Entität aktiv (leer = Standard-Tönung)",
+  "Active icon color": "Symbolfarbe wenn aktiv",
+  "Background used when entity is active (empty = same as normal)": "Hintergrund wenn Entität aktiv (leer = wie normal)",
+  "Icon color used when entity is active (empty = same as normal)": "Symbolfarbe wenn Entität aktiv (leer = wie normal)",
 
   // Editor helpers
   "Button color": "Tastenfarbe",
