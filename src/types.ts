@@ -108,10 +108,6 @@ export interface Item {
   scroll_info?: boolean;
   fallback_icon?: string;
 
-  // Numpad
-  hide_dash?: boolean;
-  hide_enter?: boolean;
-
   // Sub-buttons (dpad, color_buttons, numbers)
   buttons?: Record<string, SubButtonConfig>;
 

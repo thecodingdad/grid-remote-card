@@ -173,8 +173,9 @@ export const cardStyles = css`
     justify-content: center;
     width: 48px;
     height: 40px;
+    line-height: 1;
     border-radius: 8px;
-    background-color: var(--grc-item-bg);
+    background-color: var(--grc-btn-bg, var(--grc-item-bg));
     background-image: var(--grc-btn-bg-overlay, none);
     color: var(--grc-item-icon);
     font-size: 18px;
@@ -185,12 +186,30 @@ export const cardStyles = css`
     user-select: none;
     position: relative;
     overflow: hidden;
+    container-type: inline-size;
+  }
+  .numpad-btn > ha-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .numpad-btn > span {
+    display: inline-block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: normal;
+    font-size: clamp(9px, calc(18px - max(0, var(--numpad-chars, 1) - 2) * 3px), 18px);
+    line-height: 1;
+    text-align: center;
+    padding: 3px;
+    max-height: stretch;
   }
   .numpad-btn:hover {
-    background-color: color-mix(in srgb, var(--primary-text-color) 10%, var(--grc-item-bg));
+    background-color: color-mix(in srgb, var(--primary-text-color) 10%, var(--grc-btn-bg, var(--grc-item-bg)));
   }
   .numpad-btn:active {
-    background-color: color-mix(in srgb, var(--primary-text-color) 18%, var(--grc-item-bg));
+    background-color: color-mix(in srgb, var(--primary-text-color) 18%, var(--grc-btn-bg, var(--grc-item-bg)));
   }
   .numpad-dash, .numpad-enter {
     font-size: 14px;

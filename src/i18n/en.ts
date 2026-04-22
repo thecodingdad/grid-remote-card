@@ -39,8 +39,6 @@ export default {
 
   // Editor labels
   "Color": "Color",
-  "Hide \"-/--\"": "Hide \"-/--\"",
-  "Hide \"Enter\"": "Hide \"Enter\"",
   "Icon": "Icon",
   "Text": "Text",
   "Icon color": "Icon color",
@@ -162,7 +160,7 @@ export default {
   "Basis": "Basis",
   "Actions": "Actions",
   "Options": "Options",
-  "Button actions": "Button actions",
+  "Button settings": "Button settings",
   "Slider options": "Slider options",
   "Source-Popup": "Source-Popup",
 

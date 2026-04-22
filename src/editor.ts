@@ -2210,8 +2210,6 @@ export class GridRemoteCardEditor extends LitElement {
         case 'hold_repeat':
         case 'slider_live':
         case 'scroll_info':
-        case 'hide_dash':
-        case 'hide_enter':
         case 'show_state_background':
           if (v) item[key] = true;
           else delete item[key];

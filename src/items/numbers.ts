@@ -15,6 +15,13 @@ import type { NumpadKey } from '../types';
 
 const NUMPAD_KEYS: NumpadKey[] = ['1','2','3','4','5','6','7','8','9','dash','0','enter'];
 
+const NUMPAD_POS: Record<NumpadKey, [number, number]> = {
+  '1': [1, 1], '2': [1, 2], '3': [1, 3],
+  '4': [2, 1], '5': [2, 2], '6': [2, 3],
+  '7': [3, 1], '8': [3, 2], '9': [3, 3],
+  dash: [4, 1], '0': [4, 2], enter: [4, 3],
+};
+
 const NUMPAD_LABELS: Record<NumpadKey, string> = {
   '1': '1', '2': '2', '3': '3', '4': '4', '5': '5',
   '6': '6', '7': '7', '8': '8', '9': '9', '0': '0',
@@ -36,9 +43,12 @@ import {
   variantRadiusStyles,
 } from './shared-styles';
 
-const NUMPAD_OPTIONS_FIELDS = [
-  { name: 'hide_dash', selector: { boolean: {} } },
-  { name: 'hide_enter', selector: { boolean: {} } },
+const SCHEMA_NUMPAD_BTN_BASIS = [
+  { name: 'icon', selector: { icon: {} } },
+  { name: 'text', selector: { text: {} } },
+  { name: 'icon_color', selector: { ui_color: {} } },
+  { name: 'text_color', selector: { ui_color: {} } },
+  { name: 'background_color', selector: { ui_color: {} } },
 ];
 
 @customElement('grc-numbers-item')
@@ -79,22 +89,35 @@ export class NumbersItem extends ItemBase {
   static override renderPopup(card: GridRemoteCard, itemIndex: number): TemplateResult | '' {
     const item = card._items[itemIndex];
     if (!item) return '';
-    const hideDash = item.hide_dash ?? false;
-    const hideEnter = item.hide_enter ?? false;
     return html`
       <div class="numpad-grid">
         ${NUMPAD_KEYS.map((key) => {
-          const hidden = (key === 'dash' && hideDash) || (key === 'enter' && hideEnter);
-          if (hidden) return '';
-          const col = key === 'dash' ? '1' : key === '0' ? '2' : key === 'enter' ? '3' : '';
-          const style = col ? `grid-column:${col}` : '';
+          const btnCfg = (item.buttons?.[key] as any) || {};
+          if (btnCfg.hidden) return '';
+          const [row, col] = NUMPAD_POS[key];
+          const style: string[] = [`grid-row:${row}`, `grid-column:${col}`];
+          const bg = resolveColor(btnCfg.background_color || '');
+          if (bg) style.push(`--grc-btn-bg:${bg}`);
+          const iconColor = resolveColor(btnCfg.icon_color || '');
+          const textColor = resolveColor(btnCfg.text_color || '');
+          const icon = btnCfg.icon;
+          const labelOverride = btnCfg.text;
+          const defaultLabel = key === 'enter'
+            ? html`<ha-icon icon="mdi:keyboard-return" style="--mdc-icon-size:20px;"></ha-icon>`
+            : NUMPAD_DISPLAY[key];
+          let content: TemplateResult | string;
+          if (icon) {
+            content = html`<ha-icon icon="${icon}" style="--mdc-icon-size:22px;${iconColor ? `color:${iconColor};` : ''}"></ha-icon>`;
+          } else if (labelOverride) {
+            content = html`<span style="--numpad-chars:${Math.max(1, labelOverride.length)};${textColor ? `color:${textColor};` : ''}">${labelOverride}</span>`;
+          } else {
+            content = defaultLabel;
+          }
           return html`
             <button class="numpad-btn ${key === 'enter' ? 'numpad-enter' : ''} ${key === 'dash' ? 'numpad-dash' : ''}"
-                    style="${style}"
+                    style="${style.join(';')}"
                     @click=${() => handleNumpadTap(card, itemIndex, key)}>
-              ${key === 'enter'
-                ? html`<ha-icon icon="mdi:keyboard-return" style="--mdc-icon-size:20px;"></ha-icon>`
-                : NUMPAD_DISPLAY[key]}
+              ${content}
             </button>
           `;
         })}
@@ -168,42 +191,93 @@ export function renderNumbersEditor(
   };
   const actionsSchema = editor._actionFields({ hasEntity: false });
 
-  const optionsData = {
-    hide_dash: item.hide_dash ?? false,
-    hide_enter: item.hide_enter ?? false,
-  };
-
   return html`
     ${editor._renderCollapsible(`item-${index}-basis`, t(editor.hass, 'Basis'), true,
       editor._renderItemForm(basisData, basisSchema, index))}
     ${editor._renderCollapsible(`item-${index}-actions`, t(editor.hass, 'Actions'), false,
       editor._renderItemForm(actionsData, actionsSchema, index))}
-    ${editor._renderCollapsible(`item-${index}-numpad-options`, t(editor.hass, 'Options'), false,
-      editor._renderItemForm(optionsData, NUMPAD_OPTIONS_FIELDS, index))}
-    ${editor._renderCollapsible(`item-${index}-numpad-actions`, t(editor.hass, 'Button actions'), false, html`
-      ${NUMPAD_KEYS.map((key) => {
-        const hidden = (key === 'dash' && (item.hide_dash ?? false)) || (key === 'enter' && (item.hide_enter ?? false));
-        if (hidden) return '';
-        const isSubOpen = editor._openSubButton === `${index}-${key}`;
-        const keyData = {
-          tap_action: (item.buttons?.[key] as any)?.tap_action ?? {},
-        };
-        const keySchema = editor._uiActionSchema('tap_action', false);
-        return html`
-          <div class="button-item" style="margin-left:8px;">
-            <div class="button-item-header ${isSubOpen ? 'editor-open' : ''}"
-                 @click=${() => { editor._openSubButton = isSubOpen ? null : `${index}-${key}`; }}>
-              <span class="button-item-label">${NUMPAD_LABELS[key]}</span>
-              <ha-icon class="button-item-chevron ${isSubOpen ? 'open' : ''}" icon="mdi:chevron-right"></ha-icon>
-            </div>
-            ${isSubOpen ? html`
-              <div class="button-editor-slot">
-                ${editor._renderSubBtnForm(keyData, keySchema, index, key)}
-              </div>
-            ` : ''}
-          </div>
-        `;
-      })}
+    ${editor._renderCollapsible(`item-${index}-numpad-buttons`, t(editor.hass, 'Button settings'), false, html`
+      ${NUMPAD_KEYS.map((key) =>
+        renderNumpadKeyRow(editor, item, index, key))}
     `)}
   `;
+}
+
+function renderNumpadKeyRow(
+  editor: GridRemoteCardEditor,
+  item: Item,
+  index: number,
+  key: NumpadKey,
+): TemplateResult {
+  const btnCfg = (item.buttons?.[key] as any) ?? {};
+  const isHidden = !!btnCfg.hidden;
+  const isSubOpen = editor._openSubButton === `${index}-${key}`;
+  return html`
+    <div class="button-item ${isHidden ? 'hidden-source' : ''}" style="margin-left:8px;">
+      <div class="button-item-header ${isSubOpen ? 'editor-open' : ''}">
+        <span class="button-item-label" style="cursor:pointer;flex:1;"
+              @click=${() => { editor._openSubButton = isSubOpen ? null : `${index}-${key}`; }}>
+          ${NUMPAD_LABELS[key]}
+        </span>
+        <button class="icon-btn" title="${t(editor.hass, isHidden ? 'Show' : 'Hide')}"
+                @click=${() => toggleNumpadKeyHidden(editor, index, key)}>
+          <ha-icon icon="${isHidden ? 'mdi:eye-off' : 'mdi:eye'}" style="--mdc-icon-size:18px;"></ha-icon>
+        </button>
+        <ha-icon class="button-item-chevron ${isSubOpen ? 'open' : ''}"
+                 icon="mdi:chevron-right"
+                 style="cursor:pointer;"
+                 @click=${() => { editor._openSubButton = isSubOpen ? null : `${index}-${key}`; }}></ha-icon>
+      </div>
+      ${isSubOpen ? html`
+        <div class="button-editor-slot">
+          ${renderNumpadKeyEditor(editor, item, index, key)}
+        </div>
+      ` : ''}
+    </div>
+  `;
+}
+
+function renderNumpadKeyEditor(
+  editor: GridRemoteCardEditor,
+  item: Item,
+  index: number,
+  key: NumpadKey,
+): TemplateResult {
+  const btnCfg = (item.buttons?.[key] as any) ?? {};
+  const basisData = {
+    icon: btnCfg.icon ?? '',
+    text: btnCfg.text ?? '',
+    icon_color: btnCfg.icon_color ?? '',
+    text_color: btnCfg.text_color ?? '',
+    background_color: btnCfg.background_color ?? '',
+  };
+  const actionsData = {
+    tap_action: btnCfg.tap_action ?? {},
+    hold_action: btnCfg.hold_action ?? {},
+    hold_repeat: btnCfg.hold_repeat ?? false,
+    hold_repeat_interval: btnCfg.hold_repeat_interval ?? '',
+  };
+  const actionsSchema = editor._actionFields({ hasEntity: false });
+  return html`
+    ${editor._renderCollapsible(`item-${index}-${key}-basis`, t(editor.hass, 'Basis'), true,
+      editor._renderSubBtnForm(basisData, SCHEMA_NUMPAD_BTN_BASIS, index, key))}
+    ${editor._renderCollapsible(`item-${index}-${key}-actions`, t(editor.hass, 'Actions'), false,
+      editor._renderSubBtnForm(actionsData, actionsSchema, index, key))}
+  `;
+}
+
+function toggleNumpadKeyHidden(editor: GridRemoteCardEditor, index: number, key: NumpadKey): void {
+  const items = [...editor._items];
+  const item: Item = { ...items[index] };
+  const buttons: Record<string, any> = { ...(item.buttons || {}) };
+  const btnCfg: any = { ...(buttons[key] || {}) };
+  if (btnCfg.hidden) delete btnCfg.hidden;
+  else btnCfg.hidden = true;
+  if (Object.keys(btnCfg).length > 0) buttons[key] = btnCfg;
+  else delete buttons[key];
+  if (Object.keys(buttons).length > 0) item.buttons = buttons;
+  else delete item.buttons;
+  items[index] = item;
+  editor._config = { ...editor._config, items };
+  editor._fireConfigChanged();
 }
