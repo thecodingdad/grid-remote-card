@@ -1914,9 +1914,16 @@ export class GridRemoteCardEditor extends LitElement {
     const d = this._gridDragState;
     if (!d) return;
     const newPageIdx = this._pageCount;
+    // Set page_count + currentEditorPage together so the first render
+    // already shows the new (empty) page, matching the +button click path.
     this._config = { ...this._config, page_count: newPageIdx + 1 };
+    this._currentEditorPage = newPageIdx;
+    d.pageSwitched = true;
     this._fireConfigChanged();
-    await this._switchPageDuringDrag(newPageIdx);
+    await this.updateComplete;
+    for (const di of d.dragItems) di.el = null;
+    const gridEl = this.shadowRoot?.querySelector('.tab-panel.active .grid-editor') as HTMLElement | null;
+    if (gridEl) d.gridRect = gridEl.getBoundingClientRect();
   }
 
   async _switchPageDuringDrag(targetPage: number) {
