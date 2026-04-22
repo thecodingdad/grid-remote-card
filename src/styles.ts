@@ -989,7 +989,7 @@ export const editorStyles = css`
   }
   .page-tab {
     all: unset;
-    cursor: pointer;
+    cursor: grab;
     font-size: 12px;
     font-weight: 500;
     font-family: var(--mdc-typography-font-family, Roboto, sans-serif);
@@ -1003,6 +1003,18 @@ export const editorStyles = css`
     display: flex;
     align-items: center;
     gap: 4px;
+    touch-action: none;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .page-tab.dragging {
+    cursor: grabbing;
+    transform: scale(1.08);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    z-index: 2;
+  }
+  .page-tab.page-tab-add {
+    cursor: pointer;
+    touch-action: auto;
   }
   .page-tab.active {
     background: var(--primary-color);

@@ -3,9 +3,7 @@
  *
  * This file contains the editor schemas, editor-specific CSS, and the
  * LitElement class that drives drag-drop layout editing, per-item forms,
- * and preset loading. Kept as a single file for the initial TS port;
- * may be split further in a later phase (see memory: grid-remote-card
- * Phase 5.2).
+ * and preset loading.
  */
 
 import { LitElement, html, type TemplateResult } from 'lit';
@@ -188,6 +186,8 @@ export class GridRemoteCardEditor extends LitElement {
       _templateMenuOpen:   { state: true },
       _dragActiveTick:     { state: true },
       _presetConfirming:   { state: true },
+      _pageDragFrom:       { state: true },
+      _pageDragTo:         { state: true },
     };
   }
 
@@ -224,6 +224,8 @@ export class GridRemoteCardEditor extends LitElement {
   _dragActiveTick = 0;
   _presetConfirming = false;
   _onTemplateMenuOutsideClick: ((e: MouseEvent) => void) | null = null;
+  _pageDragFrom: number | null = null;
+  _pageDragTo: number | null = null;
   _sourceDragItemIdx: number | null = null;
   _sourceDragPointerId: number | null = null;
   _onSourceDragMoveBound: any = null;
@@ -691,15 +693,27 @@ export class GridRemoteCardEditor extends LitElement {
 
   _renderPageTabs() {
     const count = this._pageCount;
-    const tabs = [];
-    for (let i = 0; i < count; i++) {
-      tabs.push(html`
-        <button class="page-tab ${i === this._currentEditorPage ? 'active' : ''}"
-                @click=${() => { this._currentEditorPage = i; this._clearSelection(); this._fireConfigChanged(); }}>
+    // Build visual order. During a page drag, move `_pageDragFrom` to
+    // `_pageDragTo` so the tab bar previews the reorder live while the
+    // user is still dragging. The actual config is only mutated on drop.
+    let order: number[] = [];
+    for (let i = 0; i < count; i++) order.push(i);
+    const from = this._pageDragFrom;
+    const to = this._pageDragTo;
+    if (from != null && to != null && from !== to) {
+      const [moved] = order.splice(from, 1);
+      order.splice(Math.min(to, order.length), 0, moved);
+    }
+    const tabs = order.map((i) => {
+      const isDragging = from != null && i === from;
+      return html`
+        <button class="page-tab ${i === this._currentEditorPage ? 'active' : ''} ${isDragging ? 'dragging' : ''}"
+                data-page-idx=${i}
+                @pointerdown=${(e: PointerEvent) => this._onPageTabPointerDown(e, i)}>
           ${t(this.hass, 'Page {n}', { n: i + 1 })}
         </button>
-      `);
-    }
+      `;
+    });
     return html`
       <div class="page-tabs-bar">
         ${tabs}
@@ -713,6 +727,107 @@ export class GridRemoteCardEditor extends LitElement {
     this._config = { ...this._config, page_count: newCount };
     this._currentEditorPage = newCount - 1;
     this._clearSelection();
+    this._fireConfigChanged();
+  }
+
+  _onPageTabPointerDown(e: PointerEvent, pageIdx: number) {
+    if (e.button !== 0) return;
+    const el = e.currentTarget as HTMLElement;
+    try { el.setPointerCapture(e.pointerId); } catch (_) { /* noop */ }
+    const startX = e.clientX;
+    const startY = e.clientY;
+    let dragging = false;
+
+    const onMove = (ev: PointerEvent) => {
+      if (!dragging) {
+        if (Math.abs(ev.clientX - startX) > 5 || Math.abs(ev.clientY - startY) > 5) {
+          dragging = true;
+          this._pageDragFrom = pageIdx;
+          this._pageDragTo = pageIdx;
+        } else return;
+      }
+      const newTo = this._computePageDropTarget(ev.clientX, ev.clientY, pageIdx);
+      if (newTo !== this._pageDragTo) this._pageDragTo = newTo;
+    };
+    const onUp = () => {
+      try { el.releasePointerCapture(e.pointerId); } catch (_) { /* noop */ }
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onUp);
+      document.removeEventListener('pointercancel', onCancel);
+      if (!dragging) {
+        // Treat as click: switch page
+        this._currentEditorPage = pageIdx;
+        this._clearSelection();
+        this._fireConfigChanged();
+      } else {
+        const to = this._pageDragTo ?? pageIdx;
+        this._pageDragFrom = null;
+        this._pageDragTo = null;
+        if (to !== pageIdx) this._reorderPages(pageIdx, to);
+      }
+    };
+    const onCancel = () => {
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onUp);
+      document.removeEventListener('pointercancel', onCancel);
+      this._pageDragFrom = null;
+      this._pageDragTo = null;
+    };
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerup', onUp);
+    document.addEventListener('pointercancel', onCancel);
+  }
+
+  _computePageDropTarget(cursorX: number, cursorY: number, draggedIdx: number): number {
+    const tabs = [...(this.shadowRoot?.querySelectorAll('.page-tab:not(.page-tab-add)') as NodeListOf<HTMLElement>)];
+    if (tabs.length === 0) return draggedIdx;
+    let nearestVisIdx = 0;
+    let best = Infinity;
+    tabs.forEach((tab, i) => {
+      const r = tab.getBoundingClientRect();
+      const cx = r.left + r.width / 2;
+      const cy = r.top + r.height / 2;
+      const d = Math.hypot(cursorX - cx, cursorY - cy);
+      if (d < best) { best = d; nearestVisIdx = i; }
+    });
+    const nearestRect = tabs[nearestVisIdx].getBoundingClientRect();
+    const insertBefore = cursorX < nearestRect.left + nearestRect.width / 2;
+    // Since the rendered order already reflects [..., dragged moved to _pageDragTo, ...],
+    // the visual index directly maps to the desired logical target index.
+    return insertBefore ? nearestVisIdx : Math.min(nearestVisIdx + 1, this._pageCount - 1);
+  }
+
+  _reorderPages(from: number, to: number) {
+    if (from === to) return;
+    const items = this._items.map(item => {
+      const p = item.page ?? 0;
+      if (p === from) return { ...item, page: to };
+      if (from < to && p > from && p <= to) return { ...item, page: p - 1 };
+      if (to < from && p >= to && p < from) return { ...item, page: p + 1 };
+      return item;
+    });
+    // Clean up page:0 since it's the default (omit field)
+    for (const item of items) if (item.page === 0) delete item.page;
+
+    const conds = [...(this._config.page_conditions || [])];
+    while (conds.length < this._pageCount) conds.push(null as any);
+    const [c] = conds.splice(from, 1);
+    conds.splice(to, 0, c);
+    while (conds.length > 0 && !conds[conds.length - 1]) conds.pop();
+
+    const newCfg: any = { ...this._config, items };
+    if (conds.length) newCfg.page_conditions = conds;
+    else delete newCfg.page_conditions;
+
+    // Update current editor page: follow the moved tab if it was active,
+    // otherwise shift accordingly.
+    let newCurrent = this._currentEditorPage;
+    if (newCurrent === from) newCurrent = to;
+    else if (from < to && newCurrent > from && newCurrent <= to) newCurrent -= 1;
+    else if (to < from && newCurrent >= to && newCurrent < from) newCurrent += 1;
+
+    this._config = newCfg;
+    this._currentEditorPage = newCurrent;
     this._fireConfigChanged();
   }
 
