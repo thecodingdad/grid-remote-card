@@ -728,7 +728,7 @@ export class GridRemoteCardEditor extends LitElement {
       `;
     });
     return html`
-      <div class="page-tabs-bar">
+      <div class="page-tabs-bar ${this._isDragActive() ? 'items-dragging' : ''}">
         ${tabs}
         <button class="page-tab page-tab-add" @click=${this._addPage} title="${t(this.hass, 'New page')}">+</button>
       </div>

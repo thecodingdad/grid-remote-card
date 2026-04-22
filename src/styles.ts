@@ -1039,7 +1039,7 @@ export const editorStyles = css`
   /* Page tabs */
   .page-tabs-bar {
     display: flex;
-    gap: 4px;
+    gap: 15px;
     margin-bottom: 8px;
     flex-wrap: wrap;
   }
@@ -1061,6 +1061,11 @@ export const editorStyles = css`
     gap: 4px;
     touch-action: none;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .page-tabs-bar.items-dragging .page-tab {
+    transform: scale(1.2);
+    transform-origin: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
   }
   .page-tab.dragging {
     cursor: grabbing;
