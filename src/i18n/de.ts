@@ -121,6 +121,8 @@ export default {
   // Grid layout
   "Remove all buttons": "Alle Tasten entfernen",
   "Add buttons to grid (click or drag)": "Tasten zum Raster hinzufügen (Klick oder Ziehen)",
+  "Move mode — Press {key} to copy instead of move": "Verschieben-Modus — {key} drücken zum Kopieren",
+  "Copy mode — press {key} to move instead of copy": "Kopier-Modus — {key} drücken zum Verschieben",
 
   // Template / Preset
   "Template:": "Vorlage:",

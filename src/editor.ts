@@ -389,6 +389,13 @@ export class GridRemoteCardEditor extends LitElement {
           ? html`<div class="marquee"
                       style="left:${this._marqueeRect.x}px;top:${this._marqueeRect.y}px;width:${this._marqueeRect.w}px;height:${this._marqueeRect.h}px;"></div>`
           : ''}
+        ${dragMode ? html`
+          <div class="drag-hint ${this._gridDragState?.copyMode ? 'copy' : ''}">
+            ${this._gridDragState?.copyMode
+              ? t(this.hass, 'Copy mode — press {key} to move instead of copy', { key: this._modifierKeyLabel() })
+              : t(this.hass, 'Move mode — Press {key} to copy instead of move', { key: this._modifierKeyLabel() })}
+          </div>
+        ` : ''}
         <div class="canvas-icon-stack ${dragMode ? 'drag-mode' : ''}">
           <button class="canvas-icon-btn clear-all-btn"
                   @click=${() => this._clearCurrentPageOrAll()}
@@ -426,6 +433,12 @@ export class GridRemoteCardEditor extends LitElement {
 
   _isDragActive(): boolean {
     return this._gridDragState !== null;
+  }
+
+  _modifierKeyLabel(): string {
+    const isMac = typeof navigator !== 'undefined'
+      && /Mac|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
+    return isMac ? '⌘' : 'Ctrl';
   }
 
   _clearCurrentPageOrAll() {
@@ -520,7 +533,7 @@ export class GridRemoteCardEditor extends LitElement {
           `}
         </div>
         <div slot="footer" class="preset-dialog-footer">
-          <ha-button appearance="filled"
+          <ha-button appearance="plain"
             @click=${hasPrevStep ? () => { this._presetConfirming = false; } : this._cancelPresetDialog}>
             ${t(this.hass, hasPrevStep ? 'Back' : 'Cancel')}
           </ha-button>
@@ -1488,21 +1501,78 @@ export class GridRemoteCardEditor extends LitElement {
       pageSwitched: false,
       originalPageCount: this._pageCount,
       originalCurrentPage: this._currentEditorPage,
+      copyMode: false,
+      hintToggleArmed: true,
     };
+    this._updateDragCopyVisual();
     this._dragActiveTick++;
 
     const onMove = (ev: PointerEvent) => this._onGridDragMove(ev);
     const onUp = (ev: PointerEvent) => { this._onGridDragEnd(ev); cleanup(); };
     const onCancel = () => { this._onGridDragCancel(); cleanup(); };
+    const onKey = (ev: KeyboardEvent) => {
+      const d = this._gridDragState;
+      if (!d) return;
+      const isMod = ev.key === 'Control' || ev.key === 'Meta'
+        || ev.code === 'ControlLeft' || ev.code === 'ControlRight'
+        || ev.code === 'MetaLeft' || ev.code === 'MetaRight';
+      if (isMod && !ev.repeat) {
+        d.copyMode = !d.copyMode;
+        this._updateDragCopyVisual();
+        this._recomputeDragTarget();
+        this._dragActiveTick++;
+        ev.preventDefault();
+      }
+    };
     const cleanup = () => {
       document.removeEventListener('pointermove', onMove);
       document.removeEventListener('pointerup', onUp);
       document.removeEventListener('pointercancel', onCancel);
+      document.removeEventListener('keydown', onKey, true);
     };
     // Listen on document so drag survives re-renders (e.g. cross-page switch)
     document.addEventListener('pointermove', onMove);
     document.addEventListener('pointerup', onUp);
     document.addEventListener('pointercancel', onCancel);
+    document.addEventListener('keydown', onKey, true);
+  }
+
+  _updateDragCopyVisual() {
+    const d = this._gridDragState;
+    if (!d) return;
+    const copy = !!d.copyMode;
+    if (d.ghostLayer) d.ghostLayer.classList.toggle('copy-mode', copy);
+    for (const di of d.dragItems) {
+      if (di.el) di.el.classList.toggle('copy-source', copy);
+    }
+  }
+
+  /** Re-evaluate target validity after a copy-mode toggle (cursor may be
+   *  stationary, so a normal pointermove won't refresh). */
+  _recomputeDragTarget() {
+    // Delegate to the move handler by firing a synthetic pointermove with
+    // the last known cursor position. We don't have that, so just recompute
+    // collisions based on the current _gridDragState.target* values.
+    const d = this._gridDragState;
+    if (!d || d.targetRow == null || d.targetCol == null) return;
+    const items = this._items;
+    const isMulti = d.dragItems.length > 1;
+    const targetPage = d.pageSwitched ? this._currentEditorPage : (items[d.anchorIdx]?.page || 0);
+    let valid: boolean;
+    if (isMulti) {
+      valid = this._canPlaceGroup(items, d.dragItems, d.targetRow, d.targetCol, d.cols, d.rows, targetPage, !!d.copyMode);
+    } else {
+      const item = items[d.anchorIdx];
+      const size = getItemSize(item);
+      const excludeIdx = d.copyMode ? -1 : d.anchorIdx;
+      valid = this._canPlaceAt(items, excludeIdx, size, d.targetRow, d.targetCol, d.cols, d.rows, undefined, targetPage);
+    }
+    d.targetValid = valid;
+    // Update highlight colors
+    this.shadowRoot.querySelectorAll('.grid-bg-cell.highlight').forEach(c => {
+      c.classList.remove('valid', 'invalid');
+      c.classList.add(valid ? 'valid' : 'invalid');
+    });
   }
 
   _onGridDragMove(e: PointerEvent) {
@@ -1546,12 +1616,14 @@ export class GridRemoteCardEditor extends LitElement {
       let swapPlacements: { idx: number; row: number; col: number }[] | null = null;
 
       if (isMulti) {
-        valid = this._canPlaceGroup(items, d.dragItems, anchorTargetRow, anchorTargetCol, d.cols, d.rows, targetPage);
+        valid = this._canPlaceGroup(items, d.dragItems, anchorTargetRow, anchorTargetCol, d.cols, d.rows, targetPage, !!d.copyMode);
       } else {
         const item = items[d.anchorIdx];
         const size = getItemSize(item);
-        valid = this._canPlaceAt(items, d.anchorIdx, size, anchorTargetRow, anchorTargetCol, d.cols, d.rows, undefined, targetPage);
-        if (!valid && !d.pageSwitched) {
+        const excludeIdx = d.copyMode ? -1 : d.anchorIdx;
+        valid = this._canPlaceAt(items, excludeIdx, size, anchorTargetRow, anchorTargetCol, d.cols, d.rows, undefined, targetPage);
+        // Swap only makes sense when moving, not copying
+        if (!d.copyMode && !valid && !d.pageSwitched) {
           swapPlacements = this._canSwapWith(items, d.anchorIdx, anchorTargetRow, anchorTargetCol, d.cols, d.rows, targetPage);
           if (swapPlacements) valid = true;
         }
@@ -1599,6 +1671,26 @@ export class GridRemoteCardEditor extends LitElement {
       d.trashEl.classList.toggle('hover', over);
       d.overTrash = over;
     }
+
+    // Touch copy-mode toggle: hovering over the hint chip toggles copyMode.
+    // Requires the cursor to leave the hint before another toggle is armed.
+    const hintEl = this.shadowRoot?.querySelector('.drag-hint') as HTMLElement | null;
+    if (hintEl) {
+      const hr = hintEl.getBoundingClientRect();
+      const overHint = e.clientX >= hr.left && e.clientX <= hr.right && e.clientY >= hr.top && e.clientY <= hr.bottom;
+      hintEl.classList.toggle('hover', overHint);
+      if (overHint) {
+        if (d.hintToggleArmed) {
+          d.copyMode = !d.copyMode;
+          d.hintToggleArmed = false;
+          this._updateDragCopyVisual();
+          this._recomputeDragTarget();
+          this._dragActiveTick++;
+        }
+      } else {
+        d.hintToggleArmed = true;
+      }
+    }
   }
 
   _onGridDragEnd(_e: PointerEvent) {
@@ -1619,35 +1711,61 @@ export class GridRemoteCardEditor extends LitElement {
 
     const committed = d.overTrash || (d.targetValid && d.targetRow != null);
     if (d.overTrash) {
-      // Bulk delete all dragged items in one config update
-      const drop = new Set<number>(d.dragItems.map((x: any) => x.idx));
-      const items = this._items.filter((_, i) => !drop.has(i));
-      this._config = { ...this._config, items };
-      this._clearSelection();
-      this._fireConfigChanged();
+      // Bulk delete all dragged items in one config update (copy-mode
+      // doesn't interact with trash — originals must not be removed when
+      // the user happens to have Ctrl held while hovering trash)
+      if (!d.copyMode) {
+        const drop = new Set<number>(d.dragItems.map((x: any) => x.idx));
+        const items = this._items.filter((_, i) => !drop.has(i));
+        this._config = { ...this._config, items };
+        this._clearSelection();
+        this._fireConfigChanged();
+      }
     } else if (d.targetValid && d.targetRow != null) {
       const items = [...this._items];
       const targetPage = d.pageSwitched ? this._currentEditorPage : (items[d.anchorIdx]?.page || 0);
       const multiPage = this._pageCount > 1;
-      // Update row/col + page for every dragged item
-      for (const di of d.dragItems) {
-        const tr = d.targetRow + di.relRow;
-        const tc = d.targetCol + di.relCol;
-        const updated: any = { ...items[di.idx], row: tr, col: tc };
-        if (multiPage) {
-          if (targetPage > 0) updated.page = targetPage;
-          else delete updated.page;
+
+      if (d.copyMode) {
+        // Clone every dragged item at the target position; originals stay.
+        const newIdxs = new Set<number>();
+        for (const di of d.dragItems) {
+          const tr = d.targetRow + di.relRow;
+          const tc = d.targetCol + di.relCol;
+          const clone: any = JSON.parse(JSON.stringify(items[di.idx]));
+          clone.row = tr;
+          clone.col = tc;
+          if (multiPage) {
+            if (targetPage > 0) clone.page = targetPage;
+            else delete clone.page;
+          }
+          items.push(clone);
+          newIdxs.add(items.length - 1);
         }
-        items[di.idx] = updated;
-      }
-      // Swap placements (single-drag only)
-      if (d.swapPlacements) {
-        for (const p of d.swapPlacements) {
-          items[p.idx] = { ...items[p.idx], row: p.row, col: p.col };
+        this._config = { ...this._config, items };
+        this._selectedIdx = newIdxs;
+        this._fireConfigChanged();
+      } else {
+        // Move: update row/col + page for every dragged item
+        for (const di of d.dragItems) {
+          const tr = d.targetRow + di.relRow;
+          const tc = d.targetCol + di.relCol;
+          const updated: any = { ...items[di.idx], row: tr, col: tc };
+          if (multiPage) {
+            if (targetPage > 0) updated.page = targetPage;
+            else delete updated.page;
+          }
+          items[di.idx] = updated;
         }
+        // Swap placements (single-drag only)
+        if (d.swapPlacements) {
+          for (const p of d.swapPlacements) {
+            items[p.idx] = { ...items[p.idx], row: p.row, col: p.col };
+          }
+        }
+        this._config = { ...this._config, items };
+        this._fireConfigChanged();
       }
-      this._config = { ...this._config, items };
-      this._fireConfigChanged();
     }
     // If no drop committed and new page(s) were auto-created via +Tab hover,
     // revert those pages so the user doesn't end up with stray empty pages.
@@ -1705,6 +1823,7 @@ export class GridRemoteCardEditor extends LitElement {
   _canPlaceGroup(
     items: Item[], dragItems: any[],
     anchorRow: number, anchorCol: number, cols: number, rows: number, targetPage: number,
+    copyMode = false,
   ): boolean {
     const dragIdxs = new Set(dragItems.map(d => d.idx));
     const cells = new Set<string>();
@@ -1722,9 +1841,10 @@ export class GridRemoteCardEditor extends LitElement {
         }
       }
     }
-    // Check against non-dragging items on target page
+    // Check against non-dragging items on target page. In copy mode,
+    // originals must also block since they stay in place.
     for (let i = 0; i < items.length; i++) {
-      if (dragIdxs.has(i)) continue;
+      if (!copyMode && dragIdxs.has(i)) continue;
       const other = items[i];
       if ((other.page || 0) !== targetPage) continue;
       const os = getItemSize(other);

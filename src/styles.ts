@@ -644,16 +644,72 @@ export const editorStyles = css`
   .grid-editor-item.dragging-source {
     opacity: 0.3;
   }
+  /* Copy-mode: originals stay fully opaque (they're not being moved) */
+  .grid-editor-item.dragging-source.copy-source {
+    opacity: 1;
+  }
   .drag-ghost-layer {
     position: absolute;
     inset: 0;
     pointer-events: none;
     z-index: 100;
   }
+  .drag-ghost-layer.copy-mode {
+    cursor: copy;
+  }
   .drag-ghost {
     opacity: 0.85;
     box-shadow: 0 6px 18px rgba(0,0,0,0.35);
     transition: none;
+    position: relative;
+  }
+  .drag-ghost-layer.copy-mode .drag-ghost {
+    outline: 2px dashed var(--success-color, #4caf50);
+    outline-offset: 2px;
+  }
+  .drag-hint {
+    position: absolute;
+    bottom: 6px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 4px 10px;
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--primary-text-color) 80%, transparent);
+    color: var(--card-background-color, #fff);
+    font-size: 11px;
+    font-family: var(--mdc-typography-font-family, Roboto, sans-serif);
+    pointer-events: none;
+    z-index: 4;
+    white-space: nowrap;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+    transition: background 0.15s;
+  }
+  .drag-hint.copy {
+    background: var(--success-color, #4caf50);
+    color: #fff;
+  }
+  .drag-hint.hover {
+    transform: translateX(-50%) scale(1.1);
+    box-shadow: 0 3px 10px rgba(0,0,0,0.35);
+  }
+  .drag-ghost-layer.copy-mode .drag-ghost::after {
+    content: '+';
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--success-color, #4caf50);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 14px;
+    line-height: 1;
+    pointer-events: none;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.25);
   }
   .marquee {
     position: absolute;
