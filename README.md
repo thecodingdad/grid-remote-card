@@ -5,10 +5,9 @@ A fully customizable TV/media remote control card with drag-and-drop grid layout
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
 [![GitHub Release](https://img.shields.io/github/v/release/thecodingdad/grid-remote-card)](https://github.com/thecodingdad/grid-remote-card/releases)
 
-## Screenshots
+## Impression
 
-![Card Editor](screenshots/animation1.gif)
-![Examples](screenshots/animation2.gif)
+![Card Editor](screenshots/demo.gif)
 
 ## Features
 
