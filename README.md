@@ -7,8 +7,8 @@ A fully customizable TV/media remote control card with drag-and-drop grid layout
 
 ## Screenshots
 
-![Card Editor](screenshots/screenshot.png)
-![Examples](screenshots/screenshot2.png)
+![Card Editor](screenshots/animation1.gif)
+![Examples](screenshots/animation2.gif)
 
 ## Features
 
@@ -16,12 +16,16 @@ A fully customizable TV/media remote control card with drag-and-drop grid layout
 - Configurable grid size and button size
 - Buttons can be arranged with drag-and-drop in visual editor
 - Multi-select editing: Ctrl/Cmd+click, marquee area selection, touch long-press; move or delete multiple items at once
-- Cross-page drag: drag items over a page tab to switch pages mid-drag; hover the `+` tab to auto-create a new page
+- Copy-on-drag: hold Ctrl/Cmd while dragging (desktop) or tap the hint during drag (touch) to duplicate the selection instead of moving it — works across pages
+- Page reordering by drag-and-drop on the page tabs
+- Cross-page drag: drag items over a page tab to switch pages mid-drag; hover the `+` tab to create and switch to a new page
 - Multiple button and slider designs: round, rounded, square, pill, pill (4 directions)
 - Tap and hold action with repeat support (configurable intervals)
 - Multi-page layout with swipe navigation and automatic page switch (configurable conditions per page)
 - Haptic feedback (configurable), only triggered when an action actually fires
 - Fully configurable colors (global and per button)
+- Entity buttons expose separate colors for the active state (icon + background)
+- Fully configurable numpad keys: per-key icon, text, colors, tap/hold action, and show/hide toggle
 - Two default presets and multiple device/entity specific preset with predefined actions
 - Full UI configuration (no exclusive YAML features)
 - EN/DE multilanguage support
@@ -76,8 +80,11 @@ items:
 
 - **Multi-select**: Ctrl/Cmd+click individual items, drag a marquee rectangle across the grid, or long-press on touch to build a selection. Press Esc or click the background to clear.
 - **Multi-move**: dragging a selected item moves the whole selection together; the drop is only accepted when every item fits (no swap in multi-mode).
-- **Cross-page drag**: hover the drag over a page tab for ~400ms to switch to that page mid-drag, or hover the `+` tab to auto-create a new page. Pages auto-created during a drag that is never dropped are reverted.
-- **Delete multiple**: drag any selected item onto the trash zone to delete the whole selection.
+- **Copy instead of move**: while dragging, press Ctrl/Cmd (desktop) or tap the hint chip under the grid (touch) to toggle copy mode. The ghost shows a green `+` badge, and the dropped copy ends up selected.
+- **Cross-page drag**: hover the drag over a page tab for ~400ms to switch to that page mid-drag, or hover the `+` tab to create a new page — the editor switches to the freshly created page immediately so you can drop straight onto it.
+- **Reorder pages**: grab a page tab and drag it left/right; the tab bar live-reorders during the drag.
+- **Delete items**: drag them onto the red trash icon at the top-right of the grid.
+- **Clear / delete page**: tap the trash icon without dragging. On single-page cards this clears all items; on multi-page cards it deletes the current page.
 
 ## Configuration
 
@@ -92,10 +99,12 @@ items:
 | `sizing` | string | `normal` | Sizing mode: `normal` (fit content) or `stretch` (fill container) |
 | `page_count` | number | 1 | Number of pages for multi-page layouts |
 | `page_conditions` | array | — | Conditions for automatic page switching |
-| `card_background_color` | string | — | Card background color (CSS or HA variable) |
-| `icon_color` | string | — | Global default icon color |
-| `text_color` | string | — | Global default text color |
-| `button_background_color` | string | — | Global default button background color |
+| `ui_style` | string | `3d` | Card UI style: `3d` (plastic-button look) or `flat` |
+| `card_background_color` | string | `#333` | Card background color (CSS or HA variable) |
+| `icon_color` | string | `#fff` | Global default icon color |
+| `text_color` | string | `#fff` | Global default text color |
+| `button_background_color` | string | `#606060` | Global default button background color |
+| `remote_border_color` | string | `#777` | Frame border color of the card and popups |
 | `haptic_tap` | boolean | false | Haptic feedback on tap |
 | `haptic_hold` | boolean | false | Haptic feedback on hold |
 | `hold_repeat_interval` | number | 200 | Hold repeat interval in ms (50-1000) |
@@ -111,7 +120,7 @@ items:
 | `media` | 3x2 | Media player info with album art |
 | `source` | 1x1 | Source selection popup button |
 | `numbers` | 1x1 | Numeric keypad popup (0-9) |
-| `entity` | 1x1 | Entity state toggle button with optional state background |
+| `entity` | 1x1 | Entity state toggle button with automatic active-state colors |
 
 ### Common Item Options
 
@@ -161,8 +170,10 @@ Each direction in `buttons` supports: `icon`, `text`, `icon_color`, `text_color`
 | `min` | number | auto | Minimum value |
 | `max` | number | auto | Maximum value |
 | `step` | number | auto | Step size |
-| `icon` | string | auto | Slider icon (auto-detected from domain) |
+| `icon` | string | auto | Slider icon (auto-detected from entity, falls back to domain default) |
 | `icon_color` | string | — | Icon color |
+| `background_color` | string | — | Slider track background color |
+| `fill_color` | string | — | Slider fill color |
 | `show_icon` | boolean | true | Show icon next to slider |
 | `slider_live` | boolean | false | Send value while dragging |
 
@@ -175,7 +186,32 @@ Supports all [Button Options](#button-options), plus:
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `entity_id` | string | required | Entity to control |
-| `show_state_background` | boolean | false | Tint background when entity is active |
+| `active_background_color` | string | — | Background color used when the entity is active (auto-applied; leave empty for the normal background) |
+| `active_icon_color` | string | — | Icon color used when the entity is active (leave empty for the normal icon color) |
+
+### Number Pad Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `buttons` | object | — | Per-key config (keys: `0`..`9`, `dash`, `enter`) |
+
+Each key in `buttons` supports: `icon`, `text`, `icon_color`, `text_color`, `background_color`, `tap_action`, `hold_action`, `hold_repeat`, `hold_repeat_interval`, plus `hidden: true` to remove the key from the keypad (the layout keeps its slot so remaining keys don't shift).
+
+### Source Button Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `source_entity` | string | — | `select` / `media_player` entity — sources are loaded automatically from the entity, manual overrides are merged on top |
+| `sources` | array | — | Manual source entries (each with `name`, `label`, `icon`, `image`, `tap_action`, `hidden`) |
+
+### Media Tile Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `entity_id` | string | required | `media_player`, `image`, or `camera` entity |
+| `show_info` | boolean | true | Show title/artist at the bottom |
+| `scroll_info` | boolean | false | Scroll long text instead of truncating |
+| `fallback_icon` | string | `mdi:music` | Icon shown when no cover art is available |
 
 ## Multilanguage Support
 
