@@ -1223,11 +1223,6 @@ export class GridRemoteCardEditor extends LitElement {
         ${text
           ? html`<span class="grid-item-text">${text}</span>`
           : html`<ha-icon icon="${icon}"></ha-icon>`}
-        <button class="grid-item-delete"
-                @pointerdown=${(e: PointerEvent) => e.stopPropagation()}
-                @click=${(e: MouseEvent) => { e.stopPropagation(); this._deleteItem(idx); }}>
-          <ha-icon icon="mdi:close" style="--mdc-icon-size:12px;"></ha-icon>
-        </button>
       </div>
     `;
   }
@@ -2201,22 +2196,6 @@ export class GridRemoteCardEditor extends LitElement {
         }
       }
     }
-  }
-
-  _deleteItem(idx: number) {
-    const items = this._items.filter((_, i) => i !== idx);
-    // Adjust open item pointer
-    if (this._openItemIdx === idx) this._openItemIdx = null;
-    else if (this._openItemIdx != null && this._openItemIdx > idx) this._openItemIdx--;
-    // Adjust multi-select indices (remove deleted, shift higher ones down)
-    const nextSel = new Set<number>();
-    for (const i of this._selectedIdx) {
-      if (i === idx) continue;
-      nextSel.add(i > idx ? i - 1 : i);
-    }
-    this._selectedIdx = nextSel;
-    this._config = { ...this._config, items };
-    this._fireConfigChanged();
   }
 
   _clearAllItems() {

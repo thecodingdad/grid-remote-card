@@ -733,27 +733,6 @@ export const editorStyles = css`
     line-height: 1.2;
     padding: 2px;
   }
-  .grid-item-delete {
-    position: absolute;
-    top: -2px;
-    right: -2px;
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    background: var(--error-color, #f44336);
-    color: white;
-    border: none;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0;
-    transition: opacity 0.15s;
-    z-index: 2;
-    padding: 0;
-  }
-  .grid-editor-item:hover .grid-item-delete { opacity: 1; }
-
   .canvas-icon-stack {
     position: absolute;
     top: 4px;
