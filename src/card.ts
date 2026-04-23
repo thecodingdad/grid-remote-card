@@ -321,7 +321,11 @@ export class GridRemoteCard extends LitElement {
     const sizeStyle = stretch ? 'width:100%;height:100%;' : '';
     const zoomStyle = scale !== 1 ? `zoom:${scale};` : '';
     const rows = this._config.rows || 9;
-    const gridStyle = `grid-template-columns: repeat(${cols}, 1fr); grid-template-rows: repeat(${rows}, 1fr);`;
+    // Each track gets at least --grid-cell-{width,height} so sparse grids
+    // (e.g. a single media/slider item) don't collapse empty rows/cols
+    // to 0 and squish the whole card. `1fr` keeps the cells responsive
+    // when the grid is wider than its intrinsic size.
+    const gridStyle = `grid-template-columns: repeat(${cols}, minmax(var(--grid-cell-width), 1fr)); grid-template-rows: repeat(${rows}, minmax(var(--grid-cell-height), 1fr));`;
     const multiPage = this._pageCount > 1;
     // Cap the card at the grid's intrinsic width so the card-picker
     // preview (which has no width constraint) doesn't stretch it, but
