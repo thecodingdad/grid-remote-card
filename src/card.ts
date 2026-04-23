@@ -119,18 +119,28 @@ export class GridRemoteCard extends LitElement {
     // direction with more overlap inside the card.
     const spaceBelowInCard = cardRect.bottom - anchorRect.bottom - 8;
     const spaceAboveInCard = anchorRect.top - cardRect.top - 8;
+    const spaceBelowInViewport = window.innerHeight - anchorRect.bottom - 8;
+    const spaceAboveInViewport = anchorRect.top - 8;
     const fitsBelowCard = menuRect.height <= spaceBelowInCard;
     const fitsAboveCard = menuRect.height <= spaceAboveInCard;
     let top: number;
+    let maxHeight: number;
     if (fitsBelowCard) {
       top = anchorRect.bottom - cardRect.top + 8;
+      maxHeight = spaceBelowInViewport;
     } else if (fitsAboveCard) {
       top = anchorRect.top - cardRect.top - menuRect.height - 8;
+      maxHeight = spaceAboveInViewport;
     } else if (spaceBelowInCard >= spaceAboveInCard) {
       top = anchorRect.bottom - cardRect.top + 8;
+      maxHeight = spaceBelowInViewport;
     } else {
       top = anchorRect.top - cardRect.top - menuRect.height - 8;
+      maxHeight = spaceAboveInViewport;
     }
+    // Cap popup height to the available viewport space so it never
+    // extends past the screen edge, regardless of `max-height: 80vh`.
+    menu.style.maxHeight = `${Math.min(400, Math.max(100, maxHeight-10))}px`;
     menu.style.top = `${top}px`;
     // Menu is absolutely positioned inside ha-card (position:relative), so
     // menu.left=0 sits at ha-card's padding-box origin (inside the border).
