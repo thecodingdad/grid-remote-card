@@ -146,6 +146,7 @@ export const cardStyles = css`
     text-align: center;
     color: var(--secondary-text-color);
     font-size: 13px;
+    white-space: nowrap;
   }
   .source-popup-list {
     display: flex;

@@ -110,15 +110,15 @@ export class GridRemoteCard extends LitElement {
     const anchorEl = this._popupAnchorEl;
     if (!menu || !anchorEl) return;
     const haCard = this.shadowRoot?.querySelector('ha-card') as HTMLElement | null;
+    const gridEl = this.shadowRoot?.querySelector('.remote-grid') as HTMLElement | null;
     if (!haCard) return;
     const cardRect = haCard.getBoundingClientRect();
     const anchorRect = anchorEl.getBoundingClientRect();
     const menuRect = menu.getBoundingClientRect();
-    // Prefer fitting within ha-card bounds; fall back to viewport comparison
+    // Prefer fitting within ha-card bounds; fall back to choosing the
+    // direction with more overlap inside the card.
     const spaceBelowInCard = cardRect.bottom - anchorRect.bottom - 8;
     const spaceAboveInCard = anchorRect.top - cardRect.top - 8;
-    const spaceBelowInViewport = window.innerHeight - anchorRect.bottom - 8;
-    const spaceAboveInViewport = anchorRect.top - 8;
     const fitsBelowCard = menuRect.height <= spaceBelowInCard;
     const fitsAboveCard = menuRect.height <= spaceAboveInCard;
     let top: number;
@@ -126,20 +126,38 @@ export class GridRemoteCard extends LitElement {
       top = anchorRect.bottom - cardRect.top + 8;
     } else if (fitsAboveCard) {
       top = anchorRect.top - cardRect.top - menuRect.height - 8;
-    } else if (spaceBelowInViewport >= spaceAboveInViewport) {
+    } else if (spaceBelowInCard >= spaceAboveInCard) {
       top = anchorRect.bottom - cardRect.top + 8;
     } else {
       top = anchorRect.top - cardRect.top - menuRect.height - 8;
     }
     menu.style.top = `${top}px`;
-    const cw = cardRect.width;
+    // Menu is absolutely positioned inside ha-card (position:relative), so
+    // menu.left=0 sits at ha-card's padding-box origin (inside the border).
+    // Horizontal content bounds are driven by `.remote-grid` rect — popup
+    // stays inside grid when it fits, and centers on the card otherwise.
+    const borderL = haCard.clientLeft;
+    const originX = cardRect.left + borderL;
+    const paddingBoxW = haCard.clientWidth;
     const mw = menuRect.width;
     let left: number;
-    if (mw > cw) {
-      left = (cw - mw) / 2;
+    if (gridEl) {
+      const gridRect = gridEl.getBoundingClientRect();
+      const contentLeft = gridRect.left - originX;
+      const contentRight = gridRect.right - originX;
+      const contentW = gridRect.width;
+      if (mw > contentW) {
+        // Wider than .remote-grid: center on card (overlaps padding)
+        left = (paddingBoxW - mw) / 2;
+        console.log(`mw > contentW: ${paddingBoxW} - ${mw}`)
+      } else {
+        const anchorCenter = anchorRect.left + anchorRect.width / 2 - originX;
+        left = anchorCenter - mw / 2;
+        left = Math.max(contentLeft, Math.min(left, contentRight - mw));
+      }
     } else {
-      left = anchorRect.left + anchorRect.width / 2 - cardRect.left - mw / 2;
-      left = Math.max(0, Math.min(left, cw - mw));
+      // Fallback without grid ref: center on padding-box
+      left = (paddingBoxW - mw) / 2;
     }
     menu.style.left = `${left}px`;
   }
