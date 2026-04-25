@@ -19,6 +19,7 @@ export default {
   "Source button": "Source button",
   "Number pad": "Number pad",
   "Entity button": "Entity button",
+  "Label": "Label",
 
   // D-Pad directions
   "Up": "Up",

@@ -29,7 +29,8 @@ export type ItemType =
   | 'media'
   | 'source'
   | 'numbers'
-  | 'entity';
+  | 'entity'
+  | 'label';
 
 export type ItemVariant =
   | 'round'

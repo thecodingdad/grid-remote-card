@@ -17,6 +17,7 @@ import './slider';
 import './media';
 import './source';
 import './numbers';
+import './label';
 
 import { ButtonItem, renderButtonEditor } from './button';
 import { EntityItem, renderEntityEditor } from './entity';
@@ -26,6 +27,7 @@ import { SliderItem, renderSliderEditor } from './slider';
 import { MediaItem, renderMediaEditor } from './media';
 import { SourceItem, renderSourceEditor } from './source';
 import { NumbersItem, renderNumbersEditor } from './numbers';
+import { LabelItem, renderLabelEditor } from './label';
 import type { GridRemoteCardEditor } from '../editor';
 import type { Item } from '../types';
 import type { TemplateResult } from 'lit';
@@ -48,10 +50,11 @@ export const ITEMS: Record<ItemType, ItemMeta> = {
   media:         { tagName: 'grc-media-item',         cls: MediaItem,         renderEditor: renderMediaEditor },
   source:        { tagName: 'grc-source-item',        cls: SourceItem,        renderEditor: renderSourceEditor },
   numbers:       { tagName: 'grc-numbers-item',       cls: NumbersItem,       renderEditor: renderNumbersEditor },
+  label:         { tagName: 'grc-label-item',         cls: LabelItem,         renderEditor: renderLabelEditor },
 };
 
 export { ItemBase } from './base';
 export {
   ButtonItem, EntityItem, DpadItem, ColorButtonsItem,
-  SliderItem, MediaItem, SourceItem, NumbersItem,
+  SliderItem, MediaItem, SourceItem, NumbersItem, LabelItem,
 };

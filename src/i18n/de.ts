@@ -19,6 +19,7 @@ export default {
   "Source button": "Quellen-Taste",
   "Number pad": "Nummernblock",
   "Entity button": "Entity-Taste",
+  "Label": "Beschriftung",
 
   // D-Pad directions
   "Up": "Hoch",
