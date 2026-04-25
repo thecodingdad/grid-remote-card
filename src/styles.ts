@@ -854,6 +854,24 @@ export const editorStyles = css`
     line-height: 1.5;
     padding: 8px 4px;
   }
+  .preset-info {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    padding: 10px 12px;
+    background: var(--secondary-background-color, rgba(0,0,0,.05));
+    border-left: 3px solid var(--primary-color);
+    border-radius: 4px;
+    font-size: 13px;
+    color: var(--primary-text-color);
+    line-height: 1.4;
+  }
+  .preset-info ha-icon {
+    --mdc-icon-size: 18px;
+    color: var(--primary-color);
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
   .preset-dialog-footer {
     display: flex;
     justify-content: flex-end;

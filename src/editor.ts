@@ -521,6 +521,10 @@ export class GridRemoteCardEditor extends LitElement {
               ${t(this.hass, 'Do you want to load {label}? The current page will be replaced.', { label: preset.label })}
             </div>
           ` : html`
+            <div class="preset-info">
+              <ha-icon icon="mdi:information-outline"></ha-icon>
+              <span>${t(this.hass, 'Presets are a starting point — buttons are pre-filled with matching icons and device-specific actions to ease setup. Not every function of your device is covered.')}</span>
+            </div>
             <ha-selector
               .hass=${this.hass}
               .selector=${{ entity: { domain: preset.entity_domain, ...(preset.entity_integration ? { integration: preset.entity_integration } : {}) } }}

@@ -144,6 +144,7 @@ export default {
   "Apply template": "Vorlage anwenden",
   "Delete this page": "Diese Seite löschen",
   "Do you want to load {label}? The current page will be replaced.": "Möchtest du \"{label}\" laden? Die aktuelle Seite wird ersetzt.",
+  "Presets are a starting point — buttons are pre-filled with matching icons and device-specific actions to ease setup. Not every function of your device is covered.": "Presets sind nur ein Startpunkt — Buttons werden mit passenden Icons und gerätespezifischen Aktionen vorausgefüllt, um die Einrichtung zu erleichtern. Nicht jede Funktion deines Geräts ist abgedeckt.",
   "Load template": "Vorlage laden",
 
   // Page tabs

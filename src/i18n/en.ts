@@ -143,6 +143,7 @@ export default {
   "Apply template": "Apply template",
   "Delete this page": "Delete this page",
   "Do you want to load {label}? The current page will be replaced.": "Do you want to load \"{label}\"? The current page will be replaced.",
+  "Presets are a starting point — buttons are pre-filled with matching icons and device-specific actions to ease setup. Not every function of your device is covered.": "Presets are a starting point — buttons are pre-filled with matching icons and device-specific actions to ease setup. Not every function of your device is covered.",
   "Load template": "Load template",
 
   // Page tabs
