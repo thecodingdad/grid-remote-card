@@ -85,6 +85,7 @@ const EDITOR_LABELS: Record<string, string> = {
   icon_color: 'Icon color', text_color: 'Text color',
   background_color: 'Background color',
   fill_color: 'Fill color',
+  font_family: 'Font',
   card_background_color: 'Card background color',
   button_background_color: 'Button background color',
   remote_border_color: 'Remote border color',
@@ -111,6 +112,8 @@ const EDITOR_LABELS: Record<string, string> = {
   show_state_background: 'Background when active',
   active_background_color: 'Active background color',
   active_icon_color: 'Active icon color',
+  font_size: 'Font size',
+  multi_line: 'Multi-line',
 };
 
 const EDITOR_HELPERS: Record<string, string> = {
@@ -155,6 +158,9 @@ interface SchemaField { name: string; [k: string]: any }
 const _label = (hass: HomeAssistant, s: SchemaField): string =>
   t(hass, EDITOR_LABELS[s.name] ?? s.name);
 const _helper = (hass: HomeAssistant, s: SchemaField): string => {
+  // Per-field override wins (set `helper` on the schema entry); empty
+  // string explicitly suppresses the generic helper.
+  if ('helper' in s) return s.helper ? t(hass, s.helper) : '';
   const h = EDITOR_HELPERS[s.name];
   return h ? t(hass, h) : '';
 };
@@ -2416,6 +2422,7 @@ export class GridRemoteCardEditor extends LitElement {
         case 'active_background_color':
         case 'active_icon_color':
         case 'fill_color':
+        case 'font_family':
         case 'attribute':
         case 'fallback_icon':
           if (v) item[key] = v;
@@ -2435,7 +2442,14 @@ export class GridRemoteCardEditor extends LitElement {
         case 'slider_live':
         case 'scroll_info':
         case 'show_state_background':
+        case 'multi_line':
           if (v) item[key] = true;
+          else delete item[key];
+          break;
+
+        // Numeric: persist when valid, delete when empty/null
+        case 'font_size':
+          if (v != null && v !== '') item[key] = v;
           else delete item[key];
           break;
 

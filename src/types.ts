@@ -29,7 +29,8 @@ export type ItemType =
   | 'media'
   | 'source'
   | 'numbers'
-  | 'entity';
+  | 'entity'
+  | 'label';
 
 export type ItemVariant =
   | 'round'
@@ -81,6 +82,7 @@ export interface Item {
   text_color?: string;
   background_color?: string;
   fill_color?: string;
+  font_family?: string;
 
   // Common actions
   tap_action?: GrcAction;

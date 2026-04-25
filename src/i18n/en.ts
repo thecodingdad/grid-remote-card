@@ -19,6 +19,7 @@ export default {
   "Source button": "Source button",
   "Number pad": "Number pad",
   "Entity button": "Entity button",
+  "Label": "Label",
 
   // D-Pad directions
   "Up": "Up",
@@ -45,6 +46,12 @@ export default {
   "Text color": "Text color",
   "Background color": "Background color",
   "Fill color": "Fill color",
+  "Font": "Font",
+  "Default": "Default",
+  "Custom…": "Custom…",
+  "Font family": "Font family",
+  "Pick a font or type any Google Font name": "Pick a font or type any Google Font name",
+  "Pick a system font or type a custom font-family stack": "Pick a system font or type a custom font-family stack",
   "Card background color": "Card background color",
   "Button background color": "Button background color",
   "Remote border color": "Remote border color",
@@ -80,6 +87,8 @@ export default {
   "Background when active": "Background when active",
   "Active background color": "Active background color",
   "Active icon color": "Active icon color",
+  "Font size": "Font size",
+  "Multi-line": "Multi-line",
   "Background used when entity is active (empty = same as normal)": "Background used when entity is active (empty = same as normal)",
   "Icon color used when entity is active (empty = same as normal)": "Icon color used when entity is active (empty = same as normal)",
 

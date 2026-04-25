@@ -19,6 +19,7 @@ export default {
   "Source button": "Quellen-Taste",
   "Number pad": "Nummernblock",
   "Entity button": "Entity-Taste",
+  "Label": "Beschriftung",
 
   // D-Pad directions
   "Up": "Hoch",
@@ -45,6 +46,13 @@ export default {
   "Text color": "Textfarbe",
   "Background color": "Hintergrundfarbe",
   "Fill color": "Füllfarbe",
+  "Font": "Schriftart",
+  "Default": "Standard",
+  "Custom…": "Benutzerdefiniert…",
+  "Font family": "Schriftart",
+  "Pick a font or type any Google Font name": "Schriftart wählen oder Google-Font-Namen eintippen",
+  "Pick a system font or type a custom font-family stack": "Systemschrift wählen oder eigenen font-family-Stack eintippen",
+  "Beschriftung": "Beschriftung",
   "Card background color": "Karten-Hintergrundfarbe",
   "Button background color": "Tasten-Hintergrundfarbe",
   "Remote border color": "Rahmenfarbe",
@@ -80,6 +88,8 @@ export default {
   "Background when active": "Hintergrund wenn aktiv",
   "Active background color": "Hintergrundfarbe wenn aktiv",
   "Active icon color": "Symbolfarbe wenn aktiv",
+  "Font size": "Schriftgröße",
+  "Multi-line": "Mehrzeilig",
   "Background used when entity is active (empty = same as normal)": "Hintergrund wenn Entität aktiv (leer = wie normal)",
   "Icon color used when entity is active (empty = same as normal)": "Symbolfarbe wenn Entität aktiv (leer = wie normal)",
 

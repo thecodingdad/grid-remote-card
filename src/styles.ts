@@ -348,6 +348,13 @@ export const cardStyles = css`
       0 2px 4px rgba(0, 0, 0, 0.4),
       0 10px 24px rgba(0, 0, 0, 0.55),
       inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    /* Engraved label look — cascades into grc-label-item shadow DOM.
+       Dark text + dark top highlight + light bottom highlight mimic
+       the pressed-in look of the button borders in 3D mode. */
+    --grc-label-color: rgba(0, 0, 0, 0.75);
+    --grc-label-shadow:
+      0 -1px 0 rgba(0, 0, 0, 0.45),
+      0 1px 0 rgba(255, 255, 255, 0.18);
   }
   ha-card.style-3d .numpad-btn,
   ha-card.style-3d .popup-item {
@@ -431,6 +438,16 @@ export const editorStyles = css`
   .item-size-row .axis-label {
     font-size: 12px;
     color: var(--secondary-text-color);
+  }
+  .label-font-row {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px 0 0;
+  }
+  .label-font-select,
+  .label-font-custom {
+    width: 100%;
   }
 
   .visual-selector-label {

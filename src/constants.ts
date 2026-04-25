@@ -17,6 +17,7 @@ export const ITEM_SIZES: Record<ItemType, ItemSize> = {
   source:        { cols: 1, rows: 1 },
   numbers:       { cols: 1, rows: 1 },
   entity:        { cols: 1, rows: 1 },
+  label:         { cols: 2, rows: 1 },
 };
 
 export const ITEM_TYPES: ItemType[] = Object.keys(ITEM_SIZES) as ItemType[];
