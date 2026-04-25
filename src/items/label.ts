@@ -106,7 +106,7 @@ export function renderLabelEditor(
     text: item.text ?? '',
     text_color: item.text_color ?? '',
     font_family: (item as any).font_family ?? '',
-    font_size: (item as any).font_size ?? '',
+    font_size: (item as any).font_size ?? 14,
     multi_line: !!(item as any).multi_line,
   };
   const basisSchema = [

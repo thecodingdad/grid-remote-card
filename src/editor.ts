@@ -2450,9 +2450,9 @@ export class GridRemoteCardEditor extends LitElement {
           else delete item[key];
           break;
 
-        // Numeric: persist when valid, delete when empty/null
+        // Numeric: persist when valid + non-default, delete when empty/null/default
         case 'font_size':
-          if (v != null && v !== '') item[key] = v;
+          if (v != null && v !== '' && v !== 14) item[key] = v;
           else delete item[key];
           break;
 
