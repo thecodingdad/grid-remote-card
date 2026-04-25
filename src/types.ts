@@ -77,6 +77,8 @@ export interface Item {
   // Common visual
   variant?: ItemVariant | SliderVariant;
   icon?: string;
+  image?: string;
+  image_fill?: boolean;
   text?: string;
   icon_color?: string;
   text_color?: string;

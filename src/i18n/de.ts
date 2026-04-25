@@ -90,6 +90,7 @@ export default {
   "Active icon color": "Symbolfarbe wenn aktiv",
   "Font size": "Schriftgröße",
   "Multi-line": "Mehrzeilig",
+  "Fill button with image": "Taste mit Bild ausfüllen",
   "Background used when entity is active (empty = same as normal)": "Hintergrund wenn Entität aktiv (leer = wie normal)",
   "Icon color used when entity is active (empty = same as normal)": "Symbolfarbe wenn Entität aktiv (leer = wie normal)",
 

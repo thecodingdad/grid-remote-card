@@ -114,6 +114,7 @@ const EDITOR_LABELS: Record<string, string> = {
   active_icon_color: 'Active icon color',
   font_size: 'Font size',
   multi_line: 'Multi-line',
+  image_fill: 'Fill button with image',
 };
 
 const EDITOR_HELPERS: Record<string, string> = {
@@ -2415,6 +2416,7 @@ export class GridRemoteCardEditor extends LitElement {
 
         // String basis fields (delete when empty)
         case 'icon':
+        case 'image':
         case 'text':
         case 'icon_color':
         case 'text_color':
@@ -2443,6 +2445,7 @@ export class GridRemoteCardEditor extends LitElement {
         case 'scroll_info':
         case 'show_state_background':
         case 'multi_line':
+        case 'image_fill':
           if (v) item[key] = true;
           else delete item[key];
           break;

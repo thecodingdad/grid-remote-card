@@ -89,6 +89,7 @@ export default {
   "Active icon color": "Active icon color",
   "Font size": "Font size",
   "Multi-line": "Multi-line",
+  "Fill button with image": "Fill button with image",
   "Background used when entity is active (empty = same as normal)": "Background used when entity is active (empty = same as normal)",
   "Icon color used when entity is active (empty = same as normal)": "Icon color used when entity is active (empty = same as normal)",
 

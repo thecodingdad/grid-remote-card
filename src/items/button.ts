@@ -34,14 +34,34 @@ export class ButtonItem extends ItemBase {
     btnTextStyles,
     css`
       :host { display: block; width: 100%; height: 100%; }
+      .btn-image {
+        max-width: 70%;
+        max-height: 70%;
+        object-fit: contain;
+        pointer-events: none;
+        position: relative;
+        z-index: 1;
+      }
+      .btn-image.fill {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        max-width: none;
+        max-height: none;
+        object-fit: cover;
+      }
     `,
   ];
 
   protected override render(): TemplateResult {
     const item = this.item;
     const cfg = this.card._config;
-    const icon = item.icon ?? (item.text ? null : ButtonItem.defaultIcon);
-    const text = item.text ?? (item.icon ? null : '');
+    const text = item.text ?? null;
+    const imageUrl = item.image || '';
+    const showImage = !text && !!imageUrl;
+    const icon = item.icon ?? (text || showImage ? null : ButtonItem.defaultIcon);
+    const showIcon = !text && !showImage && !!icon;
     const iconColor = resolveColor(item.icon_color || cfg.icon_color || '');
     const textColor = resolveColor(item.text_color || cfg.text_color || '');
     const bgColor = resolveColor(item.background_color || cfg.button_background_color || '');
@@ -57,9 +77,13 @@ export class ButtonItem extends ItemBase {
               @pointercancel=${(e: PointerEvent) => this._onPointerCancel(e)}
               @contextmenu=${(e: Event) => e.preventDefault()}>
         <span class="ripple-container"></span>
-        ${icon
-          ? html`<ha-icon .icon="${icon}" style="${iconColor ? `color:${iconColor}` : ''}"></ha-icon>`
-          : html`<span class="btn-text" style="${textColor ? `color:${textColor}` : ''}">${text || ''}</span>`}
+        ${text != null
+          ? html`<span class="btn-text" style="${textColor ? `color:${textColor}` : ''}">${text || ''}</span>`
+          : showImage
+            ? html`<img class="btn-image ${item.image_fill ? 'fill' : ''}" src="${imageUrl}" alt="">`
+            : showIcon
+              ? html`<ha-icon .icon="${icon!}" style="${iconColor ? `color:${iconColor}` : ''}"></ha-icon>`
+              : ''}
       </button>
     `;
   }
@@ -76,12 +100,23 @@ export function renderButtonEditor(
   const basisData = {
     variant: item.variant || 'pill',
     icon: item.icon ?? '',
+    image: item.image ?? '',
+    image_fill: !!item.image_fill,
     text: item.text ?? '',
     icon_color: item.icon_color ?? '',
     text_color: item.text_color ?? '',
     background_color: item.background_color ?? '',
   };
-  const basisSchema = [editor._variantField(), ...editor._basisFields()];
+  const basisSchema = [
+    editor._variantField(),
+    { name: 'icon',  selector: { icon: {} } },
+    { name: 'image', selector: { text: {} } },
+    ...(item.image ? [{ name: 'image_fill', selector: { boolean: {} } }] : []),
+    { name: 'text',  selector: { text: {} } },
+    { name: 'icon_color', selector: { ui_color: {} } },
+    { name: 'text_color', selector: { ui_color: {} } },
+    { name: 'background_color', selector: { ui_color: {} } },
+  ];
 
   const actionsData = {
     tap_action: item.tap_action ?? {},
