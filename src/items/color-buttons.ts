@@ -61,8 +61,8 @@ export class ColorButtonsItem extends ItemBase {
   static override spanSchema(item: Item) {
     const size = this.getSize(item);
     return {
-      data: { col_span: size.cols },
-      schema: [{ name: 'col_span', selector: { number: { min: 1, max: 7, step: 1, mode: 'box' } } }],
+      data: { col_span: Math.max(size.cols, 3) },
+      schema: [{ name: 'col_span', selector: { number: { min: 3, max: 7, step: 1, mode: 'box' } } }],
     };
   }
 
@@ -82,15 +82,18 @@ export class ColorButtonsItem extends ItemBase {
       :host { display: block; width: 100%; height: 100%; }
       .color-buttons-row {
         display: flex;
-        gap: 8px;
+        /* % gap in flexbox resolves against container width, so gap
+           grows with col_span. */
+        gap: 5%;
         justify-content: space-evenly;
         align-items: center;
         width: 100%;
         height: 100%;
       }
       .color-btn {
-        flex: 0 0 auto !important;
-        width: 35px !important;
+        flex: 1 1 0 !important;
+        min-width: 35px !important;
+        max-width: 100px !important;
         height: 20px !important;
         border-radius: 6px !important;
         margin: 0 !important;

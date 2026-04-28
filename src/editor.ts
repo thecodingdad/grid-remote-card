@@ -959,24 +959,37 @@ export class GridRemoteCardEditor extends LitElement {
     const meta = ITEMS[item.type];
     if (!meta) return '';
     const { data, schema } = meta.cls.spanSchema(item);
-    // Extract field names (col_span / row_span) from the grid schema
+    // Extract field names + min/max from the schema (supports both
+    // top-level entries and nested `grid` blocks).
     const fields: string[] = [];
+    const fieldMin: Record<string, number> = {};
+    const fieldMax: Record<string, number> = {};
+    const collect = (entry: any) => {
+      if (entry.name) {
+        fields.push(entry.name);
+        fieldMin[entry.name] = entry.selector?.number?.min ?? 1;
+        fieldMax[entry.name] = entry.selector?.number?.max ?? Infinity;
+      }
+    };
     for (const entry of schema) {
       if (entry.type === 'grid' && Array.isArray(entry.schema)) {
-        for (const f of entry.schema) fields.push(f.name);
-      } else if (entry.name) {
-        fields.push(entry.name);
+        for (const f of entry.schema) collect(f);
+      } else {
+        collect(entry);
       }
     }
     const renderSpanStepper = (name: string, label: string) => {
       const value = data[name] ?? 1;
+      const min = fieldMin[name] ?? 1;
+      const max = fieldMax[name] ?? Infinity;
       return html`
         <span class="axis-label">${label}</span>
         <div class="axis-stepper">
-          <button ?disabled=${value <= 1}
+          <button ?disabled=${value <= min}
                   @click=${() => this._onSpanStepper(index, name, value - 1)}>−</button>
           <span class="num">${value}</span>
-          <button @click=${() => this._onSpanStepper(index, name, value + 1)}>+</button>
+          <button ?disabled=${value >= max}
+                  @click=${() => this._onSpanStepper(index, name, value + 1)}>+</button>
         </div>
       `;
     };
@@ -995,8 +1008,25 @@ export class GridRemoteCardEditor extends LitElement {
     const item: Item = { ...items[index] };
     const meta = ITEMS[item.type];
     if (!meta) return;
-    const { data } = meta.cls.spanSchema(item);
-    const val: Record<string, number> = { ...data, [name]: Math.max(1, newValue) };
+    const { data, schema } = meta.cls.spanSchema(item);
+    // Find min/max for the field so the stepper respects the schema.
+    let min = 1;
+    let max = Infinity;
+    const findField = (entry: any): boolean => {
+      if (entry.name === name) {
+        min = entry.selector?.number?.min ?? 1;
+        max = entry.selector?.number?.max ?? Infinity;
+        return true;
+      }
+      return false;
+    };
+    for (const entry of schema) {
+      if (entry.type === 'grid' && Array.isArray(entry.schema)) {
+        if (entry.schema.some(findField)) break;
+      } else if (findField(entry)) break;
+    }
+    const clamped = Math.max(min, Math.min(max, newValue));
+    const val: Record<string, number> = { ...data, [name]: clamped };
     const fakeEvent = { stopPropagation() {}, detail: { value: val } } as unknown as CustomEvent;
     this._onSpanChanged(fakeEvent, index);
   }
