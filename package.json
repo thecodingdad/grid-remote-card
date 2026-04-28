@@ -1,6 +1,6 @@
 {
   "name": "grid-remote-card",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "description": "A fully customizable TV/media remote control card with drag-and-drop grid layout for Home Assistant",
   "private": true,
   "type": "module",
