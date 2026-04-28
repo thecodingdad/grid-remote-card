@@ -166,6 +166,7 @@ export default {
 
   // Item header
   "R{row}, C{col}": "Z{row}, S{col}",
+  "Unknown item type: {type}": "Unbekannter Item-Typ: {type}",
 
   // YAML toggle
   "Show UI editor": "UI-Editor anzeigen",

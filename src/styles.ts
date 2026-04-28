@@ -738,6 +738,22 @@ export const editorStyles = css`
   }
   .grid-editor-item.type-dpad { border-radius: 50%; }
   .grid-editor-item.type-color_buttons { border-radius: 6px; }
+  .grid-editor-item.invalid-type {
+    background: color-mix(in srgb, var(--error-color, #f44336) 25%, transparent);
+    border: 1px dashed var(--error-color, #f44336);
+    color: var(--error-color, #f44336);
+    flex-direction: column;
+    gap: 2px;
+  }
+  .grid-editor-item.invalid-type ha-icon {
+    --mdc-icon-size: 16px;
+    color: var(--error-color, #f44336);
+  }
+  .grid-editor-item.invalid-type .grid-item-text {
+    color: var(--error-color, #f44336);
+    font-size: 8px;
+    font-style: italic;
+  }
   .grid-editor-item ha-icon {
     --mdc-icon-size: 20px;
     pointer-events: none;

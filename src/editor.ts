@@ -1243,12 +1243,35 @@ export class GridRemoteCardEditor extends LitElement {
 
   _renderGridEditorItem(item: Item, idx: number) {
     const meta = ITEMS[item.type];
-    if (!meta) return html``;
+    const isOpen = this._openItemIdx === idx;
+    const isSelected = this._selectedIdx.has(idx);
+    // Unknown item type (e.g. removed in a newer version, malformed YAML).
+    // Render a red placeholder showing the bad type so the user can see
+    // and drag it onto the trash. Use a 1×1 footprint so it never
+    // blocks an unreasonably large area.
+    if (!meta) {
+      const cls = [
+        'grid-editor-item',
+        'invalid-type',
+        isOpen ? 'selected' : '',
+        isSelected && !isOpen ? 'multi-selected' : '',
+      ].filter(Boolean).join(' ');
+      const colSpan = item.col_span || 1;
+      const rowSpan = item.row_span || 1;
+      return html`
+        <div class="${cls}"
+             style="grid-row:${item.row + 1}/span ${rowSpan};grid-column:${item.col + 1}/span ${colSpan};"
+             title="${t(this.hass, 'Unknown item type: {type}', { type: item.type })}"
+             @pointerdown=${(e: PointerEvent) => this._onGridItemPointerDown(e, idx)}
+             @contextmenu=${(e: MouseEvent) => e.preventDefault()}>
+          <ha-icon icon="mdi:alert-circle"></ha-icon>
+          <span class="grid-item-text">${item.type || '?'}</span>
+        </div>
+      `;
+    }
     const size = meta.cls.getSize(item);
     const icon = this._resolveEditorIcon(item);
     const text = meta.cls.showTextInGrid && item.text ? item.text : '';
-    const isOpen = this._openItemIdx === idx;
-    const isSelected = this._selectedIdx.has(idx);
     const cls = [
       'grid-editor-item',
       `type-${item.type}`,
