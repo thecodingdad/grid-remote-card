@@ -112,6 +112,7 @@ export class GridRemoteCard extends LitElement {
     const haCard = this.shadowRoot?.querySelector('ha-card') as HTMLElement | null;
     const gridEl = this.shadowRoot?.querySelector('.remote-grid') as HTMLElement | null;
     if (!haCard) return;
+    const zoom = parseFloat(getComputedStyle(haCard).zoom) || 1;
     const cardRect = haCard.getBoundingClientRect();
     const anchorRect = anchorEl.getBoundingClientRect();
     const menuRect = menu.getBoundingClientRect();
@@ -140,15 +141,18 @@ export class GridRemoteCard extends LitElement {
     }
     // Cap popup height to the available viewport space so it never
     // extends past the screen edge, regardless of `max-height: 80vh`.
-    menu.style.maxHeight = `${Math.min(400, Math.max(100, maxHeight-10))}px`;
-    menu.style.top = `${top}px`;
+    menu.style.maxHeight = `${Math.min(400, Math.max(100, maxHeight-10)) / zoom}px`;
+    menu.style.top = `${top / zoom}px`;
     // Menu is absolutely positioned inside ha-card (position:relative), so
     // menu.left=0 sits at ha-card's padding-box origin (inside the border).
     // Horizontal content bounds are driven by `.remote-grid` rect — popup
     // stays inside grid when it fits, and centers on the card otherwise.
-    const borderL = haCard.clientLeft;
+    // `clientLeft`/`clientWidth` are pre-zoom CSS pixels; multiply by
+    // `zoom` so the math stays uniform with `getBoundingClientRect`
+    // (post-zoom) values.
+    const borderL = haCard.clientLeft * zoom;
     const originX = cardRect.left + borderL;
-    const paddingBoxW = haCard.clientWidth;
+    const paddingBoxW = haCard.clientWidth * zoom;
     const mw = menuRect.width;
     let left: number;
     if (gridEl) {
@@ -169,7 +173,7 @@ export class GridRemoteCard extends LitElement {
       // Fallback without grid ref: center on padding-box
       left = (paddingBoxW - mw) / 2;
     }
-    menu.style.left = `${left}px`;
+    menu.style.left = `${left / zoom}px`;
   }
 
   private _renderPopup(): TemplateResult | '' {
