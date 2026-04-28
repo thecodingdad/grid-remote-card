@@ -171,8 +171,12 @@ export class DpadItem extends ItemBase {
     const size = DpadItem.getSize(this.item);
     const s = size.cols;
     const ringSize = `calc(${s} * var(--grid-cell-width) + ${s - 1} * var(--grid-gap))`;
+    // Scale the center OK button proportionally to the ring so it grows
+    // with `col_span`. Ratio chosen to reproduce the 64 px default at
+    // the standard 3×3 dpad (3*50 + 2*10 = 170; 170 * 0.376 ≈ 64).
+    const centerSize = `calc((${s} * var(--grid-cell-width) + ${s - 1} * var(--grid-gap)) * 0.376)`;
     return html`
-      <div class="dpad-ring" style="width:${ringSize};height:${ringSize};">
+      <div class="dpad-ring" style="width:${ringSize};height:${ringSize};--grc-dpad-center-size:${centerSize};">
         <div class="dpad-grid">
           ${this._renderDpadBtn('up', 'dpad-cell dpad-up')}
           ${this._renderDpadBtn('right', 'dpad-cell dpad-right')}
