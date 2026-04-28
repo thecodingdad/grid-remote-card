@@ -11,7 +11,7 @@ A fully customizable TV/media remote control card with drag-and-drop grid layout
 
 ## Features
 
-- Multiple button types: D-Pad, Color Buttons, Slider, Media Info, Button, Source Button, Number Pad, Entity Button
+- Multiple item types: D-Pad, Color Buttons, Slider, Media Info, Button, Source Button, Number Pad, Entity Button, Label
 - Configurable grid size and button size
 - Buttons can be arranged with drag-and-drop in visual editor
 - Multi-select editing: Ctrl/Cmd+click, marquee area selection, touch long-press; move or delete multiple items at once
@@ -25,7 +25,8 @@ A fully customizable TV/media remote control card with drag-and-drop grid layout
 - Fully configurable colors (global and per button)
 - Entity buttons expose separate colors for the active state (icon + background)
 - Fully configurable numpad keys: per-key icon, text, colors, tap/hold action, and show/hide toggle
-- Two default presets and multiple device/entity specific preset with predefined actions
+- Buttons can show an image (URL) instead of an icon, with optional fill mode that stretches the image across the whole button
+- Two default presets and device/entity-specific presets (LG WebOS TV, Sony Bravia TV, Android TV, Logitech Harmony, Apple TV, Samsung TV, Spotify, Unfolded Circle Remote, dynamic Media Player)
 - Full UI configuration (no exclusive YAML features)
 - EN/DE multilanguage support
 
@@ -120,6 +121,7 @@ items:
 | `source` | 1x1 | Source selection popup button |
 | `numbers` | 1x1 | Numeric keypad popup (0-9) |
 | `entity` | 1x1 | Entity state toggle button with automatic active-state colors |
+| `label` | 2x1 | Non-interactive text label, e.g. for branding |
 
 ### Common Item Options
 
@@ -138,7 +140,9 @@ All item types support:
 |--------|------|---------|-------------|
 | `variant` | string | `round` | Button shape: `round`, `rounded`, `square`, `pill`, `pill_top`, `pill_bottom`, `pill_left`, `pill_right` |
 | `icon` | string | `mdi:radiobox-blank` | MDI icon |
-| `text` | string | — | Text label (replaces icon) |
+| `image` | string | — | Image URL (e.g. `/local/img.png`) shown instead of the icon |
+| `image_fill` | boolean | false | Stretch the image across the entire button (only with `image`) |
+| `text` | string | — | Text label (replaces icon and image) |
 | `icon_color` | string | — | Icon color (CSS) |
 | `text_color` | string | — | Text color (CSS) |
 | `background_color` | string | — | Background color (CSS) |
@@ -211,6 +215,20 @@ Each key in `buttons` supports: `icon`, `text`, `icon_color`, `text_color`, `bac
 | `show_info` | boolean | true | Show title/artist at the bottom |
 | `scroll_info` | boolean | false | Scroll long text instead of truncating |
 | `fallback_icon` | string | `mdi:music` | Icon shown when no cover art is available |
+
+### Label Options
+
+A non-interactive caption for branding or annotating a remote (e.g. device name above the keypad).
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `text` | string | — | Label text |
+| `text_color` | string | — | Text color (CSS) |
+| `font_family` | string | — | Font family — pick one of 10 system fonts (Arial, Helvetica, Verdana, Tahoma, Trebuchet MS, Impact, Times New Roman, Georgia, Courier New, Comic Sans MS) or type any custom `font-family` stack |
+| `font_size` | number | 14 | Font size in pixels (range 6–25) |
+| `multi_line` | boolean | false | Wrap long text instead of clipping it |
+
+In the 3D card style the label automatically renders with a subtle engraved look.
 
 ## Multilanguage Support
 
