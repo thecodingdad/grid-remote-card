@@ -33,6 +33,10 @@ export const cardStyles = css`
     overflow: visible;
     box-sizing: border-box;
     position: relative;
+    /* Smoothly cross-fade card surface + border when switching pages
+       with per-page color overrides. Matches the page-track translate
+       duration so the transitions feel coordinated. */
+    transition: background-color 0.3s ease, border-color 0.3s ease;
   }
 
   .remote-grid {
@@ -821,7 +825,8 @@ export const editorStyles = css`
     background: color-mix(in srgb, var(--error-color, #f44336) 25%, transparent);
     transform: scale(1.8);
   }
-  .canvas-icon-btn.conditions-btn.has-dot::after {
+  .canvas-icon-btn.conditions-btn.has-dot::after,
+  .canvas-icon-btn.page-colors-btn.has-dot::after {
     content: '';
     position: absolute;
     right: -3px;
@@ -831,6 +836,17 @@ export const editorStyles = css`
     background: var(--primary-color);
     border-radius: 50%;
     border: 1.5px solid var(--card-background-color, #fff);
+  }
+  .canvas-icon-btn.active {
+    background: color-mix(in srgb, var(--primary-color) 25%, transparent);
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+    opacity: 1;
+  }
+  .page-colors-hint {
+    margin: 4px 0 8px;
+    font-size: 12px;
+    color: var(--secondary-text-color);
   }
   .template-menu {
     position: absolute;

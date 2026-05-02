@@ -183,13 +183,14 @@ export class GridRemoteCard extends LitElement {
     const meta = ITEMS[item.type];
     const content = meta?.cls.renderPopup?.(this, this._popupItemIdx);
     if (!content) return '';
-    const cfg = this._config;
-    // Same built-in defaults as the card render so the popup matches
-    // the remote surface even when no config value has been set.
-    const bg = resolveColor(cfg.card_background_color || '#333');
-    const btnBg = resolveColor(cfg.button_background_color || '#606060');
-    const iconColor = resolveColor(cfg.icon_color || '#fff');
-    const textColor = resolveColor(cfg.text_color || '#fff');
+    // Use the same per-page-resolved colors as the card so popup
+    // contents match the surface they overlay (esp. when the page
+    // has color overrides).
+    const colors = this._resolvePageColors(this._currentPage);
+    const bg = resolveColor(colors.card_background_color);
+    const btnBg = resolveColor(colors.button_background_color);
+    const iconColor = resolveColor(colors.icon_color);
+    const textColor = resolveColor(colors.text_color);
     const styleParts = [
       `background:${bg}`,
       `--grc-item-bg:${btnBg}`,
@@ -208,6 +209,20 @@ export class GridRemoteCard extends LitElement {
   get _items(): Item[] { return this._config?.items || []; }
 
   get _pageCount(): number { return Math.max(this._config?.page_count || 1, 1); }
+
+  /** Resolve effective colors for a page: per-page override → global
+   *  → hard-coded default. Returns all five colors guaranteed defined. */
+  _resolvePageColors(page: number) {
+    const cfg = this._config || {} as GridRemoteCardConfig;
+    const override = cfg.page_color_overrides?.[page] || null;
+    return {
+      card_background_color: override?.card_background_color || cfg.card_background_color || '#333',
+      icon_color: override?.icon_color || cfg.icon_color || '#fff',
+      text_color: override?.text_color || cfg.text_color || '#fff',
+      button_background_color: override?.button_background_color || cfg.button_background_color || '#606060',
+      remote_border_color: override?.remote_border_color || cfg.remote_border_color || '#777',
+    };
+  }
 
   _getState(entityId: string | undefined | null) {
     return entityId && this.hass ? this.hass.states[entityId] : null;
@@ -343,11 +358,14 @@ export class GridRemoteCard extends LitElement {
     // Built-in defaults applied when no config value is set. Kept here
     // instead of getStubConfig so existing cards and YAML configs pick
     // them up automatically without carrying them in the persisted config.
-    const cardBg = resolveColor(this._config.card_background_color || '#333');
-    const iconColor = resolveColor(this._config.icon_color || '#fff');
-    const textColor = resolveColor(this._config.text_color || '#fff');
-    const btnBg = resolveColor(this._config.button_background_color || '#606060');
-    const borderColor = resolveColor(this._config.remote_border_color || '#777');
+    // Per-page overrides win over the global value; both fall back to the
+    // hard-coded default below.
+    const colors = this._resolvePageColors(this._currentPage);
+    const cardBg = resolveColor(colors.card_background_color);
+    const iconColor = resolveColor(colors.icon_color);
+    const textColor = resolveColor(colors.text_color);
+    const btnBg = resolveColor(colors.button_background_color);
+    const borderColor = resolveColor(colors.remote_border_color);
     const cardBgStyle = `background:${cardBg};--grc-card-bg:${cardBg};`;
     const btnBgStyle = `--grc-item-bg:${btnBg};`;
     const iconStyle = `--grc-item-icon:${iconColor};`;

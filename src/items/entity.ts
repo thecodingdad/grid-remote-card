@@ -61,12 +61,11 @@ export class EntityItem extends ItemBase {
 
   protected override render(): TemplateResult {
     const item = this.item;
-    const cfg = this.card._config;
     const entityId = item.entity_id;
     const stateObj = entityId && this.hass ? this.hass.states[entityId] : null;
     const friendlyName = stateObj?.attributes?.friendly_name || entityId || '';
     const isActive = stateObj && !INACTIVE_STATES.has(stateObj.state);
-    let bgColor = resolveColor(item.background_color || cfg.button_background_color || '');
+    let bgColor = resolveColor(item.background_color || '');
     if (isActive) {
       const activeBg = resolveColor((item as any).active_background_color || '');
       if (activeBg) bgColor = activeBg;
@@ -76,7 +75,7 @@ export class EntityItem extends ItemBase {
 
     let content: TemplateResult;
     if (item.text) {
-      const textColor = resolveColor(item.text_color || cfg.text_color || '');
+      const textColor = resolveColor(item.text_color || '');
       content = html`<span class="btn-text" style="${textColor ? `color:${textColor}` : ''}">${item.text}</span>`;
     } else if (stateObj) {
       const activeIcon = resolveColor((item as any).active_icon_color || '');

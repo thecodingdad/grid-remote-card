@@ -195,6 +195,7 @@ export class GridRemoteCardEditor extends LitElement {
       _presetConfirming:   { state: true },
       _pageDragFrom:       { state: true },
       _pageDragTo:         { state: true },
+      _pageColorsPanelOpen: { state: true },
     };
   }
 
@@ -233,6 +234,9 @@ export class GridRemoteCardEditor extends LitElement {
   _onTemplateMenuOutsideClick: ((e: MouseEvent) => void) | null = null;
   _pageDragFrom: number | null = null;
   _pageDragTo: number | null = null;
+  /** When true, the layout panel shows the per-page color settings
+   *  panel where the selected-item editor would otherwise appear. */
+  _pageColorsPanelOpen = false;
   _sourceDragItemIdx: number | null = null;
   _sourceDragPointerId: number | null = null;
   _onSourceDragMoveBound: any = null;
@@ -420,6 +424,11 @@ export class GridRemoteCardEditor extends LitElement {
                     title="${t(this.hass, 'Conditions')}">
               <ha-icon icon="mdi:swap-horizontal" style="--mdc-icon-size:20px;"></ha-icon>
             </button>
+            <button class="canvas-icon-btn page-colors-btn ${this._hasPageColorOverride(this._currentEditorPage) ? 'has-dot' : ''} ${this._pageColorsPanelOpen ? 'active' : ''}"
+                    @click=${() => this._togglePageColorsPanel()}
+                    title="${t(this.hass, 'Page colors')}">
+              <ha-icon icon="mdi:palette-outline" style="--mdc-icon-size:20px;"></ha-icon>
+            </button>
           ` : ''}
           ${this._templateMenuOpen ? this._renderTemplateMenu() : ''}
         </div>
@@ -434,7 +443,7 @@ export class GridRemoteCardEditor extends LitElement {
           </button>
         `)}
       </div>
-      ${this._renderSelectedItemEditor()}
+      ${this._pageColorsPanelOpen ? this._renderPageColorsPanel() : this._renderSelectedItemEditor()}
     `;
   }
 
@@ -1098,6 +1107,80 @@ export class GridRemoteCardEditor extends LitElement {
     `;
   }
 
+  /** Whether the given page has any color override set. */
+  _hasPageColorOverride(page: number): boolean {
+    const override = this._config.page_color_overrides?.[page];
+    if (!override) return false;
+    return Object.values(override).some((v) => !!v);
+  }
+
+  _togglePageColorsPanel() {
+    this._pageColorsPanelOpen = !this._pageColorsPanelOpen;
+    if (this._pageColorsPanelOpen) {
+      // Close the per-item editor while the page-colors panel is open
+      // to avoid showing two editors at once.
+      this._openItemIdx = null;
+    }
+  }
+
+  _renderPageColorsPanel() {
+    const page = this._currentEditorPage;
+    const override = this._config.page_color_overrides?.[page] || {};
+    const data = {
+      card_background_color: override.card_background_color ?? '',
+      icon_color: override.icon_color ?? '',
+      text_color: override.text_color ?? '',
+      button_background_color: override.button_background_color ?? '',
+      remote_border_color: override.remote_border_color ?? '',
+    };
+    const schema = [
+      { name: 'card_background_color', selector: { ui_color: {} } },
+      { name: 'icon_color', selector: { ui_color: {} } },
+      { name: 'text_color', selector: { ui_color: {} } },
+      { name: 'button_background_color', selector: { ui_color: {} } },
+      { name: 'remote_border_color', selector: { ui_color: {} } },
+    ];
+    return html`
+      <div class="button-editor-below">
+        <div class="button-editor-below-header">
+          <ha-icon icon="mdi:palette-outline" style="--mdc-icon-size:18px;"></ha-icon>
+          <span>${t(this.hass, 'Page colors — Page {n}', { n: page + 1 })}</span>
+          <button class="yaml-toggle-btn"
+                  @click=${() => this._togglePageColorsPanel()}
+                  title="${t(this.hass, 'Cancel')}">
+            <ha-icon icon="mdi:close" style="--mdc-icon-size:18px;"></ha-icon>
+          </button>
+        </div>
+        <p class="page-colors-hint">
+          ${t(this.hass, 'Empty fields fall back to the global color settings.')}
+        </p>
+        <ha-form .hass=${this.hass} .data=${data} .schema=${schema}
+          .computeLabel=${(s: any) => _label(this.hass, s)} .computeHelper=${(s: any) => _helper(this.hass, s)}
+          @value-changed=${(e: CustomEvent) => this._onPageColorsChanged(e, page)}
+        ></ha-form>
+      </div>
+    `;
+  }
+
+  _onPageColorsChanged(e: CustomEvent, page: number) {
+    e.stopPropagation();
+    const val = e.detail.value || {};
+    const overrides = [...(this._config.page_color_overrides || [])];
+    while (overrides.length <= page) overrides.push(null);
+    const next: Record<string, string> = {};
+    for (const key of ['card_background_color', 'icon_color', 'text_color', 'button_background_color', 'remote_border_color']) {
+      if (val[key]) next[key] = val[key];
+    }
+    overrides[page] = Object.keys(next).length ? (next as any) : null;
+    // Trim trailing nulls so the array stays compact.
+    while (overrides.length > 0 && overrides[overrides.length - 1] == null) overrides.pop();
+    const updated = { ...this._config };
+    if (overrides.length) updated.page_color_overrides = overrides;
+    else delete updated.page_color_overrides;
+    this._config = updated;
+    this._fireConfigChanged();
+  }
+
   _renderItemYamlEditor(item: Item, index: number) {
     const yaml = this._itemToYaml(item);
     return html`
@@ -1301,6 +1384,7 @@ export class GridRemoteCardEditor extends LitElement {
   _selectOnly(idx: number, openEditor: boolean) {
     this._selectedIdx = new Set([idx]);
     this._openItemIdx = openEditor ? idx : null;
+    if (openEditor) this._pageColorsPanelOpen = false;
   }
 
   _toggleSelection(idx: number) {

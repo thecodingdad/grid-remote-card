@@ -169,7 +169,19 @@ export interface GridRemoteCardConfig extends LovelaceCardConfig {
   haptic_tap?: boolean;
   haptic_hold?: boolean;
   hold_repeat_interval?: number;
+  /** Per-page color overrides. Each entry (indexed by page number) may
+   *  override any subset of the global color settings; missing keys
+   *  fall back to the global value. `null` / missing entry = no override. */
+  page_color_overrides?: Array<PageColorOverride | null>;
   _editor_page?: number;
+}
+
+export interface PageColorOverride {
+  card_background_color?: string;
+  icon_color?: string;
+  text_color?: string;
+  button_background_color?: string;
+  remote_border_color?: string;
 }
 
 export interface ItemSize {

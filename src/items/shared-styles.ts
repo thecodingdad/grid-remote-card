@@ -33,7 +33,7 @@ export const remoteBtnStyles = css`
     background-color: var(--grc-btn-bg, var(--grc-item-bg));
     background-image: var(--grc-btn-bg-overlay, none);
     box-shadow: var(--grc-btn-shadow, none);
-    transition: filter 0.15s, transform 0.08s;
+    transition: filter 0.15s, transform 0.08s, background-color 0.3s ease, color 0.3s ease;
     -webkit-tap-highlight-color: transparent;
     -webkit-touch-callout: none;
     user-select: none;
@@ -51,6 +51,7 @@ export const remoteBtnStyles = css`
     color: var(--grc-item-icon);
     position: relative;
     z-index: 1;
+    transition: color 0.3s ease;
   }
 
   .remote-btn:hover {

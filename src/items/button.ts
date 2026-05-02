@@ -56,15 +56,14 @@ export class ButtonItem extends ItemBase {
 
   protected override render(): TemplateResult {
     const item = this.item;
-    const cfg = this.card._config;
     const text = item.text ?? null;
     const imageUrl = item.image || '';
     const showImage = !text && !!imageUrl;
     const icon = item.icon ?? (text || showImage ? null : ButtonItem.defaultIcon);
     const showIcon = !text && !showImage && !!icon;
-    const iconColor = resolveColor(item.icon_color || cfg.icon_color || '');
-    const textColor = resolveColor(item.text_color || cfg.text_color || '');
-    const bgColor = resolveColor(item.background_color || cfg.button_background_color || '');
+    const iconColor = resolveColor(item.icon_color || '');
+    const textColor = resolveColor(item.text_color || '');
+    const bgColor = resolveColor(item.background_color || '');
     const style = bgColor ? `--grc-btn-bg:${bgColor}` : '';
     const variantClass = VARIANT_CSS_CLASS[item.variant || 'pill'] || '';
 
