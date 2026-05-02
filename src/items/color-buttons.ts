@@ -120,11 +120,11 @@ export class ColorButtonsItem extends ItemBase {
   private _renderColorBtn(key: string): TemplateResult {
     const btnCfg = this.item.buttons?.[key] ?? {};
     const defaults = COLOR_BUTTON_DEFAULTS[key as keyof typeof COLOR_BUTTON_DEFAULTS];
-    const color = resolveColor(btnCfg.color || defaults.color);
+    const color = resolveColor(this.resolveTemplated(btnCfg.color) || defaults.color);
     const icon = btnCfg.icon || '';
     const text = btnCfg.text || '';
-    const iconColor = resolveColor(btnCfg.icon_color || '');
-    const textColor = resolveColor(btnCfg.text_color || '');
+    const iconColor = resolveColor(this.resolveTemplated(btnCfg.icon_color));
+    const textColor = resolveColor(this.resolveTemplated(btnCfg.text_color));
     return html`
       <button class="remote-btn color-btn" style="--grc-btn-bg:${color}"
               @pointerdown=${(e: PointerEvent) => this._onPointerDown(e, key)}

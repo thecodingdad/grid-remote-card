@@ -16,6 +16,7 @@ import { resolveColor } from './helpers';
 import { cardStyles } from './styles';
 import { ITEMS } from './items';
 import { OPEN_POPUP_EVENT, type OpenPopupDetail } from './items/base';
+import { TemplateSubscriber, isTemplate } from './template-subscriber';
 
 interface SwipeState {
   startX: number;
@@ -51,6 +52,13 @@ export class GridRemoteCard extends LitElement {
   private _editorDetected = false;
   private _popupOutsideListenerActive = false;
   private _gridCols = 0;
+  /** Resolves Jinja templates used in color settings via WebSocket
+   *  `subscribe_template`. Render code reads cached values
+   *  synchronously; the first result triggers `requestUpdate()`. */
+  private _tplSub = new TemplateSubscriber(() => this.requestUpdate());
+  /** Templates referenced during the most recent render. After every
+   *  update we prune subscriptions for templates not in this set. */
+  private _renderTemplateRefs = new Set<string>();
 
   static getConfigElement() {
     return document.createElement('grid-remote-card-editor');
@@ -73,6 +81,7 @@ export class GridRemoteCard extends LitElement {
   connectedCallback(): void {
     super.connectedCallback();
     this.addEventListener(OPEN_POPUP_EVENT, this._onOpenPopup as EventListener);
+    if (this.hass) this._tplSub.setHass(this.hass);
   }
 
   disconnectedCallback(): void {
@@ -82,6 +91,19 @@ export class GridRemoteCard extends LitElement {
       this._popupOutsideListenerActive = false;
       window.removeEventListener('pointerdown', this._onWindowPointerDown, true);
     }
+    this._tplSub.disconnect();
+  }
+
+  /** Resolve a possibly-Jinja color value to its rendered form.
+   *  Non-template strings pass through; template strings are resolved
+   *  via the WebSocket subscription cache. Records the template in
+   *  `_renderTemplateRefs` so unused subscriptions get pruned after
+   *  render. */
+  _resolveTemplated(value: string | undefined | null): string {
+    if (!value) return '';
+    if (!isTemplate(value)) return value;
+    this._renderTemplateRefs.add(value);
+    return this._tplSub.resolve(value);
   }
 
   private _onOpenPopup = (e: CustomEvent<OpenPopupDetail>): void => {
@@ -211,16 +233,24 @@ export class GridRemoteCard extends LitElement {
   get _pageCount(): number { return Math.max(this._config?.page_count || 1, 1); }
 
   /** Resolve effective colors for a page: per-page override → global
-   *  → hard-coded default. Returns all five colors guaranteed defined. */
+   *  → hard-coded default. Each color is also routed through
+   *  `_resolveTemplated` so Jinja expressions get rendered live.
+   *  Returns all five colors guaranteed defined. */
   _resolvePageColors(page: number) {
     const cfg = this._config || {} as GridRemoteCardConfig;
     const override = cfg.page_color_overrides?.[page] || null;
+    const pick = (overrideVal: string | undefined, globalVal: string | undefined, fallback: string): string => {
+      const o = this._resolveTemplated(overrideVal);
+      if (o) return o;
+      const g = this._resolveTemplated(globalVal);
+      return g || fallback;
+    };
     return {
-      card_background_color: override?.card_background_color || cfg.card_background_color || '#333',
-      icon_color: override?.icon_color || cfg.icon_color || '#fff',
-      text_color: override?.text_color || cfg.text_color || '#fff',
-      button_background_color: override?.button_background_color || cfg.button_background_color || '#606060',
-      remote_border_color: override?.remote_border_color || cfg.remote_border_color || '#777',
+      card_background_color: pick(override?.card_background_color, cfg.card_background_color, '#333'),
+      icon_color: pick(override?.icon_color, cfg.icon_color, '#fff'),
+      text_color: pick(override?.text_color, cfg.text_color, '#fff'),
+      button_background_color: pick(override?.button_background_color, cfg.button_background_color, '#606060'),
+      remote_border_color: pick(override?.remote_border_color, cfg.remote_border_color, '#777'),
     };
   }
 
@@ -334,6 +364,10 @@ export class GridRemoteCard extends LitElement {
 
   render(): TemplateResult {
     if (!this._config) return html``;
+    if (this.hass) this._tplSub.setHass(this.hass);
+    // Reset the per-render template ref set; it gets repopulated as
+    // `_resolveTemplated()` is called during this render.
+    this._renderTemplateRefs = new Set();
     const cols = this._config.columns || 3;
     const scale = (this._config.scale || 100) / 100;
     const stretch = this._config.sizing === 'stretch';
@@ -531,6 +565,9 @@ export class GridRemoteCard extends LitElement {
         }
       }
     }
+    // Drop subscriptions for templates that the most recent render no
+    // longer references (e.g. user removed a templated color).
+    this._tplSub.prune(this._renderTemplateRefs);
   }
 
   // -- Action dispatch (called from ItemBase._fireAction) --------------------

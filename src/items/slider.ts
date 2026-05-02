@@ -229,7 +229,7 @@ export class SliderItem extends ItemBase {
     const max = item.max ?? defaults?.max ?? 100;
     const step = item.step ?? defaults?.step ?? 1;
     const icon = item.icon || stateObj?.attributes?.icon || defaults?.icon || 'mdi:tune-variant';
-    const iconColor = resolveColor(item.icon_color || this.card._config.icon_color || '');
+    const iconColor = resolveColor(this.resolveTemplated(item.icon_color));
     const disabled = !stateObj || stateObj.state === 'unavailable';
     const showIcon = item.show_icon !== false;
     const variant: string = SLIDER_VARIANTS.includes(item.variant as any) ? (item.variant as string) : 'pill';
@@ -254,8 +254,8 @@ export class SliderItem extends ItemBase {
              @pointercancel=${() => this._onSliderEnd()}>
     `;
 
-    const bgColor = resolveColor(item.background_color || '');
-    const fillColor = resolveColor(item.fill_color || '');
+    const bgColor = resolveColor(this.resolveTemplated(item.background_color));
+    const fillColor = resolveColor(this.resolveTemplated(item.fill_color));
     const styleParts = [`--slider-fill:${fillPct}%`];
     if (bgColor) styleParts.push(`--grc-item-bg:${bgColor}`);
     if (fillColor) styleParts.push(`--grc-slider-fill-color:${fillColor}`);

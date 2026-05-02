@@ -96,10 +96,11 @@ export class NumbersItem extends ItemBase {
           if (btnCfg.hidden) return '';
           const [row, col] = NUMPAD_POS[key];
           const style: string[] = [`grid-row:${row}`, `grid-column:${col}`];
-          const bg = resolveColor(btnCfg.background_color || '');
+          const tpl = (v: string | undefined) => card._resolveTemplated(v || '');
+          const bg = resolveColor(tpl(btnCfg.background_color));
           if (bg) style.push(`--grc-btn-bg:${bg}`);
-          const iconColor = resolveColor(btnCfg.icon_color || '');
-          const textColor = resolveColor(btnCfg.text_color || '');
+          const iconColor = resolveColor(tpl(btnCfg.icon_color));
+          const textColor = resolveColor(tpl(btnCfg.text_color));
           const icon = btnCfg.icon;
           const labelOverride = btnCfg.text;
           const defaultLabel = key === 'enter'
@@ -129,9 +130,9 @@ export class NumbersItem extends ItemBase {
     const item = this.item;
     const icon = item.icon ?? (item.text ? null : NumbersItem.defaultIcon);
     const text = item.text ?? (item.icon ? null : '');
-    const iconColor = resolveColor(item.icon_color || '');
-    const textColor = resolveColor(item.text_color || '');
-    const bgColor = resolveColor(item.background_color || '');
+    const iconColor = resolveColor(this.resolveTemplated(item.icon_color));
+    const textColor = resolveColor(this.resolveTemplated(item.text_color));
+    const bgColor = resolveColor(this.resolveTemplated(item.background_color));
     const style = bgColor ? `--grc-btn-bg:${bgColor}` : '';
     const variantClass = VARIANT_CSS_CLASS[item.variant || 'pill'] || '';
 

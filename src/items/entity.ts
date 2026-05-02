@@ -65,9 +65,9 @@ export class EntityItem extends ItemBase {
     const stateObj = entityId && this.hass ? this.hass.states[entityId] : null;
     const friendlyName = stateObj?.attributes?.friendly_name || entityId || '';
     const isActive = stateObj && !INACTIVE_STATES.has(stateObj.state);
-    let bgColor = resolveColor(item.background_color || '');
+    let bgColor = resolveColor(this.resolveTemplated(item.background_color));
     if (isActive) {
-      const activeBg = resolveColor((item as any).active_background_color || '');
+      const activeBg = resolveColor(this.resolveTemplated((item as any).active_background_color));
       if (activeBg) bgColor = activeBg;
     }
     const style = bgColor ? `--grc-btn-bg:${bgColor}` : '';
@@ -75,11 +75,11 @@ export class EntityItem extends ItemBase {
 
     let content: TemplateResult;
     if (item.text) {
-      const textColor = resolveColor(item.text_color || '');
+      const textColor = resolveColor(this.resolveTemplated(item.text_color));
       content = html`<span class="btn-text" style="${textColor ? `color:${textColor}` : ''}">${item.text}</span>`;
     } else if (stateObj) {
-      const activeIcon = resolveColor((item as any).active_icon_color || '');
-      const baseIconColor = resolveColor(item.icon_color || '');
+      const activeIcon = resolveColor(this.resolveTemplated((item as any).active_icon_color));
+      const baseIconColor = resolveColor(this.resolveTemplated(item.icon_color));
       const effectiveIconColor = (isActive && activeIcon) ? activeIcon : baseIconColor;
       content = html`<state-badge
         .hass=${this.hass}

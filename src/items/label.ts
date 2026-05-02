@@ -79,7 +79,7 @@ export class LabelItem extends ItemBase {
 
   protected override render(): TemplateResult {
     const item = this.item;
-    const textColor = resolveColor(item.text_color || '');
+    const textColor = resolveColor(this.resolveTemplated(item.text_color));
     const fontFamily = (item as any).font_family || '';
     const fontSize = (item as any).font_size;
     const multiLine = !!(item as any).multi_line;

@@ -61,9 +61,9 @@ export class ButtonItem extends ItemBase {
     const showImage = !text && !!imageUrl;
     const icon = item.icon ?? (text || showImage ? null : ButtonItem.defaultIcon);
     const showIcon = !text && !showImage && !!icon;
-    const iconColor = resolveColor(item.icon_color || '');
-    const textColor = resolveColor(item.text_color || '');
-    const bgColor = resolveColor(item.background_color || '');
+    const iconColor = resolveColor(this.resolveTemplated(item.icon_color));
+    const textColor = resolveColor(this.resolveTemplated(item.text_color));
+    const bgColor = resolveColor(this.resolveTemplated(item.background_color));
     const style = bgColor ? `--grc-btn-bg:${bgColor}` : '';
     const variantClass = VARIANT_CSS_CLASS[item.variant || 'pill'] || '';
 

@@ -193,12 +193,11 @@ export class DpadItem extends ItemBase {
     const defaults = DPAD_DEFAULTS[dir as keyof typeof DPAD_DEFAULTS];
     const icon = btnCfg.icon ?? (btnCfg.text ? null : defaults.icon);
     const text = btnCfg.text ?? null;
-    const iconColor = resolveColor(btnCfg.icon_color || this.card._config.icon_color || '');
-    const textColor = resolveColor(btnCfg.text_color || this.card._config.text_color || '');
-    const isDirectional = extraClass.includes('dpad-cell');
-    const bgColor = resolveColor(
-      btnCfg.background_color || (isDirectional ? this.card._config.button_background_color : '') || '',
-    );
+    const iconColor = resolveColor(this.resolveTemplated(btnCfg.icon_color));
+    const textColor = resolveColor(this.resolveTemplated(btnCfg.text_color));
+    // Per-button bg override only — empty value falls back to the
+    // shared `--grc-item-bg` CSS var which the card sets per page.
+    const bgColor = resolveColor(this.resolveTemplated(btnCfg.background_color));
     const style = bgColor ? `--grc-btn-bg:${bgColor}` : '';
     return html`
       <button class="remote-btn ${extraClass}" style="${style}"

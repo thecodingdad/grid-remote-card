@@ -15,6 +15,7 @@ import { property } from 'lit/decorators.js';
 import type { GridRemoteCard } from '../card';
 import type { GridRemoteCardConfig, HomeAssistant, Item, ItemSize } from '../types';
 import { DEFAULT_REPEAT_INTERVAL_MS, HOLD_DELAY_MS } from '../constants';
+import { TemplateSubscriber, isTemplate } from '../template-subscriber';
 
 /** Event fired by an item to request its popup be opened by the card.
  *  The card looks up the item's `static renderPopup()` via the ITEMS
@@ -36,6 +37,46 @@ export abstract class ItemBase extends LitElement {
   @property({ attribute: false }) item!: Item;
   @property({ type: Number }) index!: number;
   @property({ attribute: false }) card!: GridRemoteCard;
+
+  /** Per-item Jinja template subscriber. Each item resolves its own
+   *  templated color values through this and re-renders itself when
+   *  results arrive — no need for the card to forward updates. */
+  private _tplSub = new TemplateSubscriber(() => this.requestUpdate());
+  private _renderTemplateRefs = new Set<string>();
+
+  override connectedCallback(): void {
+    super.connectedCallback();
+    if (this.hass) this._tplSub.setHass(this.hass);
+  }
+
+  override disconnectedCallback(): void {
+    super.disconnectedCallback();
+    this._tplSub.disconnect();
+  }
+
+  /** Resolve a possibly-templated color value. Records every templated
+   *  reference seen during this render so unused subscriptions get
+   *  pruned in `updated()`. */
+  resolveTemplated(value: string | undefined | null): string {
+    if (!value) return '';
+    if (!isTemplate(value)) return value;
+    this._renderTemplateRefs.add(value);
+    return this._tplSub.resolve(value);
+  }
+
+  /** Reset the per-render template ref set at the start of every
+   *  render. Subclasses don't need to override this — it runs in the
+   *  shared `update()` hook. */
+  protected override update(changedProps: any): void {
+    if (this.hass) this._tplSub.setHass(this.hass);
+    this._renderTemplateRefs = new Set();
+    super.update(changedProps);
+  }
+
+  protected override updated(changedProps: any): void {
+    super.updated(changedProps);
+    this._tplSub.prune(this._renderTemplateRefs);
+  }
 
   /** Static metadata — subclasses override via `static readonly`. */
   static readonly label: string = '';
