@@ -387,7 +387,7 @@ export class GridRemoteCard extends LitElement {
     // out entirely. Multi-page still needs `width:100%` so the page
     // track fills the slot, while `max-width` keeps the intrinsic cap.
     const multiPageWidth = !stretch
-      ? `width:calc(${cols} * var(--grid-cell-width) + ${cols - 1} * var(--grid-gap) + 2 * var(--remote-padding) + 2 * var(--ha-card-border-width, 1px));`
+      ? `width:calc(${cols} * var(--grid-cell-width) + ${cols - 1} * var(--grid-gap) + 2 * var(--remote-padding) + 2 * var(--grc-border-width, 1px));`
       : '';
     // Built-in defaults applied when no config value is set. Kept here
     // instead of getStubConfig so existing cards and YAML configs pick

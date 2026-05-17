@@ -13,6 +13,8 @@ export const cardStyles = css`
     --grid-cell-height: 50px;
     --grid-gap: 10px;
     --remote-padding: 15px;
+    --grc-card-radius: 12px;
+    --grc-border-width: 1px;
     --grc-item-bg:        color-mix(in srgb, var(--primary-text-color) 8%, transparent);
     --grc-item-bg-hover:  color-mix(in srgb, var(--primary-text-color) 14%, transparent);
     --grc-item-bg-active: color-mix(in srgb, var(--primary-text-color) 20%, transparent);
@@ -33,6 +35,8 @@ export const cardStyles = css`
     overflow: visible;
     box-sizing: border-box;
     position: relative;
+    border-radius: var(--grc-card-radius, var(--ha-card-border-radius, 12px));
+    border-width: var(--grc-border-width, 1px);
     /* Smoothly cross-fade card surface + border when switching pages
        with per-page color overrides. Matches the page-track translate
        duration so the transitions feel coordinated. */
