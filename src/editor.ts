@@ -276,6 +276,19 @@ export class GridRemoteCardEditor extends LitElement {
 
   get _pageCount() { return Math.max(this._config?.page_count || 1, 1); }
 
+  /** Card-wide sub-grid resolution. 2 = half-cell snap (default),
+   *  1 = whole cells (opt-out via YAML `grid_resolution: 1`). */
+  get _gridResolution(): number {
+    const v = this._config?.grid_resolution;
+    return v === 1 ? 1 : 2;
+  }
+
+  /** Snap a float user-cell coordinate to the nearest resolution step. */
+  _snap(v: number): number {
+    const res = this._gridResolution;
+    return Math.round(v * res) / res;
+  }
+
   setConfig(config: GridRemoteCardConfig) {
     if (this._ignoreNextSetConfig) {
       this._ignoreNextSetConfig = false;
@@ -387,7 +400,14 @@ export class GridRemoteCardEditor extends LitElement {
       ? items.map((item, i): [Item, number] => [item, i]).filter(([item]: [Item, number]) => (item.page || 0) === this._currentEditorPage)
       : items.map((item, i): [Item, number] => [item, i]);
     const cellSize = 44;
-    const gridStyle = `grid-template-columns:repeat(${cols},${cellSize}px);grid-template-rows:repeat(${rows},${cellSize}px);`;
+    // Sub-grid: keep the editor's outer footprint identical while
+    // doubling the internal track count when resolution is 2. Track
+    // width must compensate for the gap between internal tracks (see
+    // card.ts for the same calc).
+    const res = this._gridResolution;
+    const editorGap = 4; // must match `.grid-editor { gap: 4px }` in styles.ts
+    const trackPx = (cellSize - (res - 1) * editorGap) / res;
+    const gridStyle = `grid-template-columns:repeat(${cols * res},${trackPx}px);grid-template-rows:repeat(${rows * res},${trackPx}px);`;
 
     const pageCount = this._pageCount;
     const hasCondition = (this._config.page_conditions?.[this._currentEditorPage]?.length ?? 0) > 0;
@@ -1057,6 +1077,7 @@ export class GridRemoteCardEditor extends LitElement {
         collect(entry);
       }
     }
+    const step = 1 / this._gridResolution;
     const renderSpanStepper = (name: string, label: string) => {
       const value = data[name] ?? 1;
       const min = fieldMin[name] ?? 1;
@@ -1065,10 +1086,10 @@ export class GridRemoteCardEditor extends LitElement {
         <span class="axis-label">${label}</span>
         <div class="axis-stepper">
           <button ?disabled=${value <= min}
-                  @click=${() => this._onSpanStepper(index, name, value - 1)}>−</button>
+                  @click=${() => this._onSpanStepper(index, name, value - step)}>−</button>
           <span class="num">${value}</span>
           <button ?disabled=${value >= max}
-                  @click=${() => this._onSpanStepper(index, name, value + 1)}>+</button>
+                  @click=${() => this._onSpanStepper(index, name, value + step)}>+</button>
         </div>
       `;
     };
@@ -1104,7 +1125,8 @@ export class GridRemoteCardEditor extends LitElement {
         if (entry.schema.some(findField)) break;
       } else if (findField(entry)) break;
     }
-    const clamped = Math.max(min, Math.min(max, newValue));
+    const step = 1 / this._gridResolution;
+    const clamped = Math.max(min, Math.min(max, Math.round(newValue / step) * step));
     const val: Record<string, number> = { ...data, [name]: clamped };
     const fakeEvent = { stopPropagation() {}, detail: { value: val } } as unknown as CustomEvent;
     this._onSpanChanged(fakeEvent, index);
@@ -1379,10 +1401,19 @@ export class GridRemoteCardEditor extends LitElement {
 
   _renderGridCells(cols: number, rows: number) {
     const cells = [];
-    for (let r = 0; r < rows; r++) {
-      for (let c = 0; c < cols; c++) {
+    const res = this._gridResolution;
+    const rowsI = rows * res;
+    const colsI = cols * res;
+    for (let r = 0; r < rowsI; r++) {
+      for (let c = 0; c < colsI; c++) {
+        // Mark cells that sit on a full-cell boundary so CSS can draw a
+        // stronger separator there (half-cell boundaries get a lighter
+        // hint).
+        const majorX = c % res === 0;
+        const majorY = r % res === 0;
+        const cls = ['grid-bg-cell', majorX ? 'major-x' : '', majorY ? 'major-y' : ''].filter(Boolean).join(' ');
         cells.push(html`
-          <div class="grid-bg-cell" style="grid-row:${r + 1};grid-column:${c + 1};" data-row="${r}" data-col="${c}"></div>
+          <div class="${cls}" style="grid-row:${r + 1};grid-column:${c + 1};" data-row="${r}" data-col="${c}"></div>
         `);
       }
     }
@@ -1402,6 +1433,7 @@ export class GridRemoteCardEditor extends LitElement {
     // Render a red placeholder showing the bad type so the user can see
     // and drag it onto the trash. Use a 1×1 footprint so it never
     // blocks an unreasonably large area.
+    const res = this._gridResolution;
     if (!meta) {
       const cls = [
         'grid-editor-item',
@@ -1409,11 +1441,13 @@ export class GridRemoteCardEditor extends LitElement {
         isOpen ? 'selected' : '',
         isSelected && !isOpen ? 'multi-selected' : '',
       ].filter(Boolean).join(' ');
-      const colSpan = item.col_span || 1;
-      const rowSpan = item.row_span || 1;
+      const colSpan = Math.max(1, Math.round((item.col_span || 1) * res));
+      const rowSpan = Math.max(1, Math.round((item.row_span || 1) * res));
+      const startRow = Math.round(item.row * res) + 1;
+      const startCol = Math.round(item.col * res) + 1;
       return html`
         <div class="${cls}"
-             style="grid-row:${item.row + 1}/span ${rowSpan};grid-column:${item.col + 1}/span ${colSpan};"
+             style="grid-row:${startRow}/span ${rowSpan};grid-column:${startCol}/span ${colSpan};"
              title="${t(this.hass, 'Unknown item type: {type}', { type: item.type })}"
              @pointerdown=${(e: PointerEvent) => this._onGridItemPointerDown(e, idx)}
              @contextmenu=${(e: MouseEvent) => e.preventDefault()}>
@@ -1432,9 +1466,13 @@ export class GridRemoteCardEditor extends LitElement {
       isSelected && !isOpen ? 'multi-selected' : '',
     ].filter(Boolean).join(' ');
 
+    const startRow = Math.round(item.row * res) + 1;
+    const startCol = Math.round(item.col * res) + 1;
+    const spanRows = Math.max(1, Math.round(size.rows * res));
+    const spanCols = Math.max(1, Math.round(size.cols * res));
     return html`
       <div class="${cls}"
-           style="grid-row:${item.row + 1}/span ${size.rows};grid-column:${item.col + 1}/span ${size.cols};"
+           style="grid-row:${startRow}/span ${spanRows};grid-column:${startCol}/span ${spanCols};"
            @pointerdown=${(e: PointerEvent) => this._onGridItemPointerDown(e, idx)}
            @contextmenu=${(e: MouseEvent) => e.preventDefault()}>
         ${text
@@ -1807,8 +1845,9 @@ export class GridRemoteCardEditor extends LitElement {
     const anchorItem = this._items[d.anchorIdx];
     const ghostLeft = (anchorItem.col * cellW) + dx;
     const ghostTop = (anchorItem.row * cellH) + dy;
-    const anchorTargetCol = Math.round(ghostLeft / cellW);
-    const anchorTargetRow = Math.round(ghostTop / cellH);
+    // Snap to the active grid resolution (1 → whole cells, 2 → halves).
+    const anchorTargetCol = this._snap(ghostLeft / cellW);
+    const anchorTargetRow = this._snap(ghostTop / cellH);
     // Ghost center for out-of-grid check (same as add-drag)
     const anchorSize = getItemSize(anchorItem);
     const centerCol = (ghostLeft + (anchorSize.cols * cellW) / 2) / cellW;
@@ -1842,14 +1881,20 @@ export class GridRemoteCardEditor extends LitElement {
         }
       }
 
-      // Highlight target cells for all dragged items
+      // Highlight target cells for all dragged items. Coordinates are
+      // in internal units so the selector matches `_renderGridCells`.
+      const res = this._gridResolution;
+      const rowsI = d.rows * res;
+      const colsI = d.cols * res;
       for (const di of d.dragItems) {
         const it = items[di.idx];
         const s = getItemSize(it);
-        const tr = anchorTargetRow + di.relRow;
-        const tc = anchorTargetCol + di.relCol;
-        for (let r = tr; r < Math.min(tr + s.rows, d.rows); r++) {
-          for (let c = tc; c < Math.min(tc + s.cols, d.cols); c++) {
+        const tr = Math.round((anchorTargetRow + di.relRow) * res);
+        const tc = Math.round((anchorTargetCol + di.relCol) * res);
+        const sR = Math.max(1, Math.round(s.rows * res));
+        const sC = Math.max(1, Math.round(s.cols * res));
+        for (let r = tr; r < Math.min(tr + sR, rowsI); r++) {
+          for (let c = tc; c < Math.min(tc + sC, colsI); c++) {
             if (r < 0 || c < 0) continue;
             const cell = this.shadowRoot.querySelector(`.grid-bg-cell[data-row="${r}"][data-col="${c}"]`);
             if (cell) cell.classList.add('highlight', valid ? 'valid' : 'invalid');
@@ -1861,8 +1906,12 @@ export class GridRemoteCardEditor extends LitElement {
         for (const p of swapPlacements) {
           const swapItem = items[p.idx];
           const ss = getItemSize(swapItem);
-          for (let r = swapItem.row; r < swapItem.row + ss.rows; r++) {
-            for (let c = swapItem.col; c < swapItem.col + ss.cols; c++) {
+          const sR = Math.max(1, Math.round(ss.rows * res));
+          const sC = Math.max(1, Math.round(ss.cols * res));
+          const sr = Math.round(swapItem.row * res);
+          const sc = Math.round(swapItem.col * res);
+          for (let r = sr; r < sr + sR; r++) {
+            for (let c = sc; c < sc + sC; c++) {
               const cell = this.shadowRoot.querySelector(`.grid-bg-cell[data-row="${r}"][data-col="${c}"]`);
               if (cell) cell.classList.add('highlight', 'swap');
             }
@@ -2038,31 +2087,40 @@ export class GridRemoteCardEditor extends LitElement {
     anchorRow: number, anchorCol: number, cols: number, rows: number, targetPage: number,
     copyMode = false,
   ): boolean {
+    // Scale positions/sizes into integer internal units so the cell
+    // iteration works regardless of grid_resolution (1 or 2).
+    const res = this._gridResolution;
+    const rowsI = rows * res;
+    const colsI = cols * res;
     const dragIdxs = new Set(dragItems.map(d => d.idx));
     const cells = new Set<string>();
     for (const di of dragItems) {
       const it = items[di.idx];
       const s = getItemSize(it);
-      const tr = anchorRow + di.relRow;
-      const tc = anchorCol + di.relCol;
-      if (tr < 0 || tc < 0 || tr + s.rows > rows || tc + s.cols > cols) return false;
-      for (let r = tr; r < tr + s.rows; r++) {
-        for (let c = tc; c < tc + s.cols; c++) {
+      const tr = Math.round((anchorRow + di.relRow) * res);
+      const tc = Math.round((anchorCol + di.relCol) * res);
+      const sr = Math.max(1, Math.round(s.rows * res));
+      const sc = Math.max(1, Math.round(s.cols * res));
+      if (tr < 0 || tc < 0 || tr + sr > rowsI || tc + sc > colsI) return false;
+      for (let r = tr; r < tr + sr; r++) {
+        for (let c = tc; c < tc + sc; c++) {
           const key = `${r},${c}`;
-          if (cells.has(key)) return false; // intra-group overlap
+          if (cells.has(key)) return false;
           cells.add(key);
         }
       }
     }
-    // Check against non-dragging items on target page. In copy mode,
-    // originals must also block since they stay in place.
     for (let i = 0; i < items.length; i++) {
       if (!copyMode && dragIdxs.has(i)) continue;
       const other = items[i];
       if ((other.page || 0) !== targetPage) continue;
       const os = getItemSize(other);
-      for (let r = other.row; r < other.row + os.rows; r++) {
-        for (let c = other.col; c < other.col + os.cols; c++) {
+      const or = Math.round(other.row * res);
+      const oc = Math.round(other.col * res);
+      const orr = Math.max(1, Math.round(os.rows * res));
+      const orc = Math.max(1, Math.round(os.cols * res));
+      for (let r = or; r < or + orr; r++) {
+        for (let c = oc; c < oc + orc; c++) {
           if (cells.has(`${r},${c}`)) return false;
         }
       }
@@ -2237,8 +2295,8 @@ export class GridRemoteCardEditor extends LitElement {
 
     const centerCol = (e.clientX - d.gridRect.left) / cellW;
     const centerRow = (e.clientY - d.touchOffsetY - d.gridRect.top) / cellH;
-    const col = Math.round(centerCol - d.size.cols / 2);
-    const row = Math.round(centerRow - d.size.rows / 2);
+    const col = this._snap(centerCol - d.size.cols / 2);
+    const row = this._snap(centerRow - d.size.rows / 2);
 
     this.shadowRoot.querySelectorAll('.grid-bg-cell.highlight').forEach(c => c.classList.remove('highlight', 'valid', 'invalid'));
 
@@ -2247,8 +2305,15 @@ export class GridRemoteCardEditor extends LitElement {
       const page = this._pageCount > 1 ? this._currentEditorPage : undefined;
       const valid = this._canPlaceAt(items, -1, d.size, row, col, d.cols, d.rows, undefined, page);
 
-      for (let r = row; r < Math.min(row + d.size.rows, d.rows); r++) {
-        for (let c = col; c < Math.min(col + d.size.cols, d.cols); c++) {
+      // Highlight background cells in internal-unit coordinates so the
+      // selectors match `_renderGridCells` output regardless of resolution.
+      const res = this._gridResolution;
+      const rI = Math.round(row * res);
+      const cI = Math.round(col * res);
+      const sR = Math.max(1, Math.round(d.size.rows * res));
+      const sC = Math.max(1, Math.round(d.size.cols * res));
+      for (let r = rI; r < Math.min(rI + sR, d.rows * res); r++) {
+        for (let c = cI; c < Math.min(cI + sC, d.cols * res); c++) {
           const cell = this.shadowRoot.querySelector(`.grid-bg-cell[data-row="${r}"][data-col="${c}"]`);
           if (cell) cell.classList.add('highlight', valid ? 'valid' : 'invalid');
         }
@@ -2307,80 +2372,92 @@ export class GridRemoteCardEditor extends LitElement {
   }
 
   _canSwapWith(items: Item[], dragIdx: number, targetRow: number, targetCol: number, cols: number, rows: number, page: number | undefined): { idx: number; row: number; col: number }[] | null {
+    // All math runs in integer "internal units" (cell × resolution) so
+    // half-cell positions work the same as full-cell ones.
+    const res = this._gridResolution;
+    const rowsI = rows * res;
+    const colsI = cols * res;
     const dragItem = items[dragIdx];
     const dragSize = getItemSize(dragItem);
-    // Bounds check for dragged item at target
-    if (targetRow < 0 || targetCol < 0 || targetRow + dragSize.rows > rows || targetCol + dragSize.cols > cols) return null;
-    // Find all items overlapping with the target position (excluding dragged item)
+    const tR = Math.round(targetRow * res);
+    const tC = Math.round(targetCol * res);
+    const dSR = Math.max(1, Math.round(dragSize.rows * res));
+    const dSC = Math.max(1, Math.round(dragSize.cols * res));
+    if (tR < 0 || tC < 0 || tR + dSR > rowsI || tC + dSC > colsI) return null;
+
     const overlapping: number[] = [];
     for (let i = 0; i < items.length; i++) {
       if (i === dragIdx) continue;
       const other = items[i];
       if (page !== undefined && (other.page || 0) !== page) continue;
       const os = getItemSize(other);
-      if (!(targetRow + dragSize.rows <= other.row || targetRow >= other.row + os.rows ||
-            targetCol + dragSize.cols <= other.col || targetCol >= other.col + os.cols)) {
+      const oR = Math.round(other.row * res);
+      const oC = Math.round(other.col * res);
+      const osR = Math.max(1, Math.round(os.rows * res));
+      const osC = Math.max(1, Math.round(os.cols * res));
+      if (!(tR + dSR <= oR || tR >= oR + osR ||
+            tC + dSC <= oC || tC >= oC + osC)) {
         overlapping.push(i);
       }
     }
     if (overlapping.length === 0) return null;
 
-    // Build set of freed cells (old position of dragged item)
-    const freedCells = [];
-    for (let r = dragItem.row; r < dragItem.row + dragSize.rows; r++) {
-      for (let c = dragItem.col; c < dragItem.col + dragSize.cols; c++) {
+    const dR = Math.round(dragItem.row * res);
+    const dC = Math.round(dragItem.col * res);
+    const freedCells: { r: number; c: number }[] = [];
+    for (let r = dR; r < dR + dSR; r++) {
+      for (let c = dC; c < dC + dSC; c++) {
         freedCells.push({ r, c });
       }
     }
 
-    // Exclude dragged item + all overlapping items from collision checks
     const excludeSet = new Set([dragIdx, ...overlapping]);
-
-    // Build occupancy grid of cells taken by non-excluded items (same page only)
-    const occupied = new Set();
+    const occupied = new Set<string>();
     for (let i = 0; i < items.length; i++) {
       if (excludeSet.has(i)) continue;
       const it = items[i];
       if (page !== undefined && (it.page || 0) !== page) continue;
       const sz = getItemSize(it);
-      for (let r = it.row; r < it.row + sz.rows; r++) {
-        for (let c = it.col; c < it.col + sz.cols; c++) {
+      const iR = Math.round(it.row * res);
+      const iC = Math.round(it.col * res);
+      const sR = Math.max(1, Math.round(sz.rows * res));
+      const sC = Math.max(1, Math.round(sz.cols * res));
+      for (let r = iR; r < iR + sR; r++) {
+        for (let c = iC; c < iC + sC; c++) {
           occupied.add(`${r},${c}`);
         }
       }
     }
-    // Also mark the target cells (where dragged item will go) as occupied
-    for (let r = targetRow; r < targetRow + dragSize.rows; r++) {
-      for (let c = targetCol; c < targetCol + dragSize.cols; c++) {
+    for (let r = tR; r < tR + dSR; r++) {
+      for (let c = tC; c < tC + dSC; c++) {
         occupied.add(`${r},${c}`);
       }
     }
 
-    // Greedily place each overlapping item into the freed cells (larger items first)
     const sorted = [...overlapping].sort((a, b) => {
       const sa = getItemSize(items[a]), sb = getItemSize(items[b]);
       return (sb.rows * sb.cols) - (sa.rows * sa.cols);
     });
 
-    const placements = [];
+    const placements: { idx: number; row: number; col: number }[] = [];
     for (const idx of sorted) {
       const sz = getItemSize(items[idx]);
+      const sR = Math.max(1, Math.round(sz.rows * res));
+      const sC = Math.max(1, Math.round(sz.cols * res));
       let placed = false;
-      // Try each freed cell as top-left corner
       for (const { r: fr, c: fc } of freedCells) {
-        if (fr + sz.rows > rows || fc + sz.cols > cols) continue;
-        // Check all cells this item would occupy are free
+        if (fr + sR > rowsI || fc + sC > colsI) continue;
         let fits = true;
-        for (let r = fr; r < fr + sz.rows && fits; r++) {
-          for (let c = fc; c < fc + sz.cols && fits; c++) {
+        for (let r = fr; r < fr + sR && fits; r++) {
+          for (let c = fc; c < fc + sC && fits; c++) {
             if (occupied.has(`${r},${c}`)) fits = false;
           }
         }
         if (fits) {
-          placements.push({ idx, row: fr, col: fc });
-          // Mark cells as occupied
-          for (let r = fr; r < fr + sz.rows; r++) {
-            for (let c = fc; c < fc + sz.cols; c++) {
+          // Map back to user-visible coordinates for the caller.
+          placements.push({ idx, row: fr / res, col: fc / res });
+          for (let r = fr; r < fr + sR; r++) {
+            for (let c = fc; c < fc + sC; c++) {
               occupied.add(`${r},${c}`);
             }
           }

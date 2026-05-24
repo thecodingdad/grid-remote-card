@@ -157,6 +157,9 @@ export interface GridRemoteCardConfig extends LovelaceCardConfig {
   items?: Item[];
   columns?: number;
   rows?: number;
+  /** Sub-grid resolution multiplier. 1 = whole cells only (default,
+   *  legacy behaviour); 2 = half-cell snap for fine positioning. */
+  grid_resolution?: 1 | 2;
   scale?: number;
   sizing?: 'normal' | 'stretch';
   ui_style?: 'flat' | '3d';

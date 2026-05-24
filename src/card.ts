@@ -378,7 +378,22 @@ export class GridRemoteCard extends LitElement {
     // (e.g. a single media/slider item) don't collapse empty rows/cols
     // to 0 and squish the whole card. `1fr` keeps the cells responsive
     // when the grid is wider than its intrinsic size.
-    const gridStyle = `grid-template-columns: repeat(${cols}, minmax(var(--grid-cell-width), 1fr)); grid-template-rows: repeat(${rows}, minmax(var(--grid-cell-height), 1fr));`;
+    // Half-cell sub-grid: when `grid_resolution` is 2 the underlying
+    // CSS grid uses twice as many tracks, each half the cell width.
+    // User-visible cell size stays identical; items can opt into 0.5er
+    // positions / spans.
+    const res = this._config.grid_resolution === 1 ? 1 : 2;
+    const colsI = cols * res;
+    const rowsI = rows * res;
+    // Track width must compensate for the gap between the `res` internal
+    // tracks that make up one user cell: a 1×1 item spans `res` tracks
+    // and `res-1` gaps, so the per-track size is
+    //   (cellW - (res-1) * gap) / res
+    // This keeps user-visible item sizes and total grid width identical
+    // regardless of resolution.
+    const trackW = `calc((var(--grid-cell-width) - ${res - 1} * var(--grid-gap)) / ${res})`;
+    const trackH = `calc((var(--grid-cell-height) - ${res - 1} * var(--grid-gap)) / ${res})`;
+    const gridStyle = `grid-template-columns: repeat(${colsI}, minmax(${trackW}, 1fr)); grid-template-rows: repeat(${rowsI}, minmax(${trackH}, 1fr));`;
     const multiPage = this._pageCount > 1;
     // Cap the card at the grid's intrinsic width so the card-picker
     // preview (which has no width constraint) doesn't stretch it, but
@@ -442,7 +457,7 @@ export class GridRemoteCard extends LitElement {
     for (let p = 0; p < this._pageCount; p++) {
       const items = this._items.map((item, i): [Item, number] => [item, i]).filter(([item]) => (item.page || 0) === p);
       const pagePlaceholder = items.length === 0
-        ? html`<div class="grid-item" style="grid-column:1 / span ${cols};grid-row:1 / span ${rows};visibility:hidden;"></div>`
+        ? html`<div class="grid-item" style="grid-column:1 / span ${colsI};grid-row:1 / span ${rowsI};visibility:hidden;"></div>`
         : '';
       pages.push(html`
         <div class="remote-grid" style="${gridStyle}">
@@ -489,7 +504,15 @@ export class GridRemoteCard extends LitElement {
     const meta = ITEMS[item.type];
     if (!meta) return html``;
     const size = meta.cls.getSize(item);
-    const gs = `grid-row:${item.row + 1}/span ${size.rows};grid-column:${item.col + 1}/span ${size.cols};`;
+    // Multiply row/col/spans by the grid resolution so half-cell values
+    // map onto integer CSS grid lines (CSS Grid doesn't support
+    // fractional line numbers). Resolution=1 → no change.
+    const res = this._config.grid_resolution === 1 ? 1 : 2;
+    const startRow = Math.round(item.row * res) + 1;
+    const startCol = Math.round(item.col * res) + 1;
+    const spanRows = Math.max(1, Math.round(size.rows * res));
+    const spanCols = Math.max(1, Math.round(size.cols * res));
+    const gs = `grid-row:${startRow}/span ${spanRows};grid-column:${startCol}/span ${spanCols};`;
     const tag = unsafeStatic(meta.tagName);
     return html`<div class="${meta.cls.wrapperClass}" style="${gs}"><${tag} .hass=${this.hass} .item=${item} .index=${index} .card=${this}></${tag}></div>`;
   }
