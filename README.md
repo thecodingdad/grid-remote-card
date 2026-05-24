@@ -11,18 +11,20 @@ A fully customizable TV/media remote control card with drag-and-drop grid layout
 
 ## Features
 
-- Multiple item types: D-Pad, Color Buttons, Slider, Media Info, Button, Source Button, Number Pad, Entity Button, Label
-- Configurable grid size and button size
+- Multiple item types: D-Pad, Color Buttons, Slider, Media Info, Button, Source Button, Number Pad, Entity Button, Label, Swipepad
+- Configurable grid size and button size, with half-cell snap (0.5 increments) for fine positioning
 - Buttons can be arranged with drag-and-drop in visual editor
 - Multi-select editing: Ctrl/Cmd+click, marquee area selection, touch long-press; move or delete multiple items at once
 - Copy-on-drag: hold Ctrl/Cmd while dragging (desktop) or tap the hint during drag (touch) to duplicate the selection instead of moving it — works across pages
 - Page reordering by drag-and-drop on the page tabs
 - Cross-page drag: drag items over a page tab to switch pages mid-drag; hover the `+` tab to create and switch to a new page
+- Duplicate a page (items + colors) with one click — the copy lands right after the current page and becomes active immediately
 - Multiple button and slider designs: round, rounded, square, pill, pill (4 directions)
 - Tap and hold action with repeat support (configurable intervals)
 - Multi-page layout with swipe navigation and automatic page switch (configurable conditions per page)
 - Haptic feedback (configurable), only triggered when an action actually fires
-- Fully configurable colors (global and per button)
+- Fully configurable colors (global, per page, and per item)
+- Every color field accepts a Jinja template (entity-driven dynamic colors that update live)
 - Entity buttons expose separate colors for the active state (icon + background)
 - Fully configurable numpad keys: per-key icon, text, colors, tap/hold action, and show/hide toggle
 - Buttons can show an image (URL) instead of an icon, with optional fill mode that stretches the image across the whole button
@@ -108,6 +110,16 @@ items:
 | `haptic_tap` | boolean | false | Haptic feedback on tap |
 | `haptic_hold` | boolean | false | Haptic feedback on hold |
 | `hold_repeat_interval` | number | 200 | Hold repeat interval in ms (50-1000) |
+| `grid_resolution` | number | 2 | Sub-grid snap resolution: `2` (half-cell, default) or `1` (whole-cell, legacy) |
+| `page_color_overrides` | array | — | Per-page overrides for the five card colors. Each entry can override any subset of `card_background_color`, `icon_color`, `text_color`, `button_background_color`, `remote_border_color` |
+
+### Templating colors
+
+Every color field — global, per page, and per item — accepts a Jinja expression. The card subscribes to the template via Home Assistant's WebSocket API and updates live when referenced entities change. To enable the template editor for a field, type a custom color value starting with `{{` in the color picker; the picker switches to a Jinja code editor automatically. Example:
+
+```yaml
+card_background_color: "{{ states('sun.sun') == 'above_horizon' and '#ffeb3b' or '#3949ab' }}"
+```
 
 ### Item Types
 
@@ -122,6 +134,7 @@ items:
 | `numbers` | 1x1 | Numeric keypad popup (0-9) |
 | `entity` | 1x1 | Entity state toggle button with automatic active-state colors |
 | `label` | 2x1 | Non-interactive text label, e.g. for branding |
+| `swipepad` | 3x2 | 8-direction swipe pad with optional center tap and per-direction icon-click |
 
 ### Common Item Options
 
@@ -229,6 +242,17 @@ A non-interactive caption for branding or annotating a remote (e.g. device name 
 | `multi_line` | boolean | false | Wrap long text instead of clipping it |
 
 In the 3D card style the label automatically renders with a subtle engraved look.
+
+### Swipepad Options
+
+A gesture pad with eight compass swipe directions (`n`, `ne`, `e`, `se`, `s`, `sw`, `w`, `nw`) plus a `center` action for taps without movement. Each direction is configured as a sub-button inside `buttons.<dir>` with the usual icon/text/colors and `tap_action` / `hold_action` / `hold_repeat`. The pad detects swipes (drag past a small threshold), swipe-and-hold (finger held at the end of a swipe), and pure taps (no movement → `center`). For the cardinal directions the icons also act as tap targets by default; dragging from an icon promotes to a normal swipe automatically.
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `background_color` | string | — | Touchpad background color |
+| `hide_cardinal_icons` | boolean | false | Hide the N/E/S/W arrows until the pad is touched |
+| `hide_diagonal_icons` | boolean | true | Hide the NE/SE/SW/NW arrows until the pad is touched |
+| `buttons.<dir>` | object | — | Per-direction config: `icon`, `text`, `icon_color`, `text_color`, `tap_action`, `hold_action`, `hold_repeat`, `hold_repeat_interval`. Cardinal directions also accept `icon_click: false` to disable the icon-as-button shortcut (cardinals default to `true`, diagonals to `false`). |
 
 ## Multilanguage Support
 
