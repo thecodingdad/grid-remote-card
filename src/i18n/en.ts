@@ -161,6 +161,7 @@ export default {
   "Page {n}": "Page {n}",
   "Delete page": "Delete page",
   "New page": "New page",
+  "Duplicate page": "Duplicate page",
   "Conditions": "Conditions",
   "Page colors": "Page colors",
   "Page colors — Page {n}": "Page colors — Page {n}",

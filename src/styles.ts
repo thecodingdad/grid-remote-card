@@ -790,7 +790,9 @@ export const editorStyles = css`
     transition: opacity 0.2s ease, transform 0.2s ease;
   }
   .canvas-icon-stack.drag-mode .template-btn,
-  .canvas-icon-stack.drag-mode .conditions-btn {
+  .canvas-icon-stack.drag-mode .conditions-btn,
+  .canvas-icon-stack.drag-mode .page-colors-btn,
+  .canvas-icon-stack.drag-mode .duplicate-page-btn {
     opacity: 0;
     transform: scale(0.6);
     pointer-events: none;

@@ -425,16 +425,21 @@ export class GridRemoteCardEditor extends LitElement {
                   title="${t(this.hass, 'Apply template')}">
             <ha-icon icon="mdi:view-grid-plus-outline" style="--mdc-icon-size:20px;"></ha-icon>
           </button>
+          <button class="canvas-icon-btn page-colors-btn ${this._hasPageColorOverride(this._currentEditorPage) ? 'has-dot' : ''} ${this._pageColorsPanelOpen ? 'active' : ''}"
+                  @click=${() => this._togglePageColorsPanel()}
+                  title="${t(this.hass, 'Page colors')}">
+            <ha-icon icon="mdi:palette-outline" style="--mdc-icon-size:20px;"></ha-icon>
+          </button>
+          <button class="canvas-icon-btn duplicate-page-btn"
+                  @click=${() => this._duplicateCurrentPage()}
+                  title="${t(this.hass, 'Duplicate page')}">
+            <ha-icon icon="mdi:content-duplicate" style="--mdc-icon-size:20px;"></ha-icon>
+          </button>
           ${pageCount > 1 ? html`
             <button class="canvas-icon-btn conditions-btn ${hasCondition ? 'has-dot' : ''}"
                     @click=${() => { this._conditionDialogOpen = true; }}
                     title="${t(this.hass, 'Conditions')}">
               <ha-icon icon="mdi:swap-horizontal" style="--mdc-icon-size:20px;"></ha-icon>
-            </button>
-            <button class="canvas-icon-btn page-colors-btn ${this._hasPageColorOverride(this._currentEditorPage) ? 'has-dot' : ''} ${this._pageColorsPanelOpen ? 'active' : ''}"
-                    @click=${() => this._togglePageColorsPanel()}
-                    title="${t(this.hass, 'Page colors')}">
-              <ha-icon icon="mdi:palette-outline" style="--mdc-icon-size:20px;"></ha-icon>
             </button>
           ` : ''}
           ${this._templateMenuOpen ? this._renderTemplateMenu() : ''}
@@ -766,6 +771,64 @@ export class GridRemoteCardEditor extends LitElement {
     const newCount = this._pageCount + 1;
     this._config = { ...this._config, page_count: newCount };
     this._currentEditorPage = newCount - 1;
+    this._clearSelection();
+    this._fireConfigChanged();
+  }
+
+  /** Duplicate the current page. Clones items on the page, inserts the
+   *  copy directly after it, and switches the editor to the new page.
+   *  Page conditions and color overrides are inserted as fresh slots
+   *  (color override copied; condition deliberately not copied so two
+   *  pages don't both auto-trigger on the same state). */
+  _duplicateCurrentPage() {
+    const srcPage = this._currentEditorPage;
+    const newPage = srcPage + 1;
+    const oldCount = this._pageCount;
+    const newCount = oldCount + 1;
+
+    // Shift items on later pages up by one, then clone items from the
+    // source page with `page = newPage` so they land in the new slot.
+    const shifted = this._items.map(item => {
+      const p = item.page || 0;
+      if (p > srcPage) return { ...item, page: p + 1 };
+      return item;
+    });
+    const clones = this._items
+      .filter(item => (item.page || 0) === srcPage)
+      .map(item => {
+        const clone: any = JSON.parse(JSON.stringify(item));
+        clone.page = newPage;
+        return clone;
+      });
+    const items = [...shifted, ...clones];
+
+    const config: any = { ...this._config, items, page_count: newCount };
+
+    // Insert a null placeholder into page_conditions at newPage so the
+    // existing per-page entries keep their index alignment. We do NOT
+    // copy the source's condition — both pages auto-triggering on the
+    // same state would be confusing.
+    if (this._config.page_conditions) {
+      const conds = [...this._config.page_conditions];
+      conds.splice(newPage, 0, null as any);
+      while (conds.length > 0 && !conds[conds.length - 1]) conds.pop();
+      if (conds.length) config.page_conditions = conds;
+      else delete config.page_conditions;
+    }
+
+    // Copy the source page's per-page color override so the duplicate
+    // looks identical.
+    if (this._config.page_color_overrides) {
+      const overrides = [...this._config.page_color_overrides];
+      const src = overrides[srcPage] ? { ...overrides[srcPage] } : null;
+      overrides.splice(newPage, 0, src);
+      while (overrides.length > 0 && overrides[overrides.length - 1] == null) overrides.pop();
+      if (overrides.length) config.page_color_overrides = overrides;
+      else delete config.page_color_overrides;
+    }
+
+    this._config = config;
+    this._currentEditorPage = newPage;
     this._clearSelection();
     this._fireConfigChanged();
   }

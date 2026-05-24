@@ -162,6 +162,7 @@ export default {
   "Page {n}": "Seite {n}",
   "Delete page": "Seite löschen",
   "New page": "Neue Seite",
+  "Duplicate page": "Seite duplizieren",
   "Conditions": "Bedingungen",
   "Page colors": "Seitenfarben",
   "Page colors — Page {n}": "Seitenfarben — Seite {n}",
