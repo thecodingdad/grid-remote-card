@@ -500,7 +500,7 @@ export class GridRemoteCard extends LitElement {
     if (this._pageCount <= 1) return;
     if (e.touches.length !== 1) return;
     const target = e.target as Element | null;
-    if (target?.closest?.('.slider-wrapper') || e.composedPath().some((el: any) => el.classList?.contains('slider-wrapper'))) return;
+    if (target?.closest?.('.slider-wrapper, .swipepad-wrapper') || e.composedPath().some((el: any) => el.classList?.contains('slider-wrapper') || el.classList?.contains('swipepad-wrapper'))) return;
     this._swipeState = { startX: e.touches[0].clientX, startY: e.touches[0].clientY, dx: 0, swiping: false };
   };
 

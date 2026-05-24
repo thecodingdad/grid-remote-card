@@ -30,7 +30,8 @@ export type ItemType =
   | 'source'
   | 'numbers'
   | 'entity'
-  | 'label';
+  | 'label'
+  | 'swipepad';
 
 export type ItemVariant =
   | 'round'

@@ -20,6 +20,17 @@ export default {
   "Number pad": "Nummernblock",
   "Entity button": "Entity-Taste",
   "Label": "Beschriftung",
+  "Swipepad": "Swipepad",
+  "Hide cardinal icons until touched": "Hauptrichtungs-Icons erst bei Berührung anzeigen",
+  "Hide diagonal icons until touched": "Diagonal-Icons erst bei Berührung anzeigen",
+  "Tap icon to fire action": "Aktion bei Icon-Klick ausführen",
+  "Swipe action": "Swipe-Aktion",
+  "Swipe & Hold action": "Swipe & Halten-Aktion",
+  "Up-right": "Oben rechts",
+  "Down-right": "Unten rechts",
+  "Down-left": "Unten links",
+  "Up-left": "Oben links",
+  "Center": "Mitte",
 
   // D-Pad directions
   "Up": "Hoch",

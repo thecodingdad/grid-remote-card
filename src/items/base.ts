@@ -256,7 +256,7 @@ export abstract class ItemBase extends LitElement {
     s.repeatTimer = null;
   };
 
-  private _shouldRepeatOnHold(subButton: string | null): boolean {
+  protected _shouldRepeatOnHold(subButton: string | null): boolean {
     if (!this.item) return false;
     if (subButton) {
       const btnCfg = this.item.buttons?.[subButton];
@@ -269,7 +269,7 @@ export abstract class ItemBase extends LitElement {
     return !holdAction || !holdAction.action || holdAction.action === 'none';
   }
 
-  private _getHoldRepeatInterval(subButton: string | null): number {
+  protected _getHoldRepeatInterval(subButton: string | null): number {
     const subCfg = subButton ? this.item.buttons?.[subButton] : null;
     return (
       subCfg?.hold_repeat_interval

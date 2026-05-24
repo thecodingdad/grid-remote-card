@@ -115,6 +115,9 @@ const EDITOR_LABELS: Record<string, string> = {
   font_size: 'Font size',
   multi_line: 'Multi-line',
   image_fill: 'Fill button with image',
+  hide_cardinal_icons: 'Hide cardinal icons until touched',
+  hide_diagonal_icons: 'Hide diagonal icons until touched',
+  icon_click: 'Tap icon to fire action',
 };
 
 const EDITOR_HELPERS: Record<string, string> = {
@@ -157,7 +160,11 @@ const EDITOR_HELPERS: Record<string, string> = {
 interface SchemaField { name: string; [k: string]: any }
 
 const _label = (hass: HomeAssistant, s: SchemaField): string =>
-  t(hass, EDITOR_LABELS[s.name] ?? s.name);
+  // Per-field override wins (schema entry sets `label: 'i18n key'`).
+  // Falls back to the global EDITOR_LABELS map, then the raw field name.
+  s.label
+    ? t(hass, s.label)
+    : t(hass, EDITOR_LABELS[s.name] ?? s.name);
 const _helper = (hass: HomeAssistant, s: SchemaField): string => {
   // Per-field override wins (set `helper` on the schema entry); empty
   // string explicitly suppresses the generic helper.
@@ -2610,6 +2617,7 @@ export class GridRemoteCardEditor extends LitElement {
         case 'show_state_background':
         case 'multi_line':
         case 'image_fill':
+        case 'hide_cardinal_icons':
           if (v) item[key] = true;
           else delete item[key];
           break;
@@ -2623,6 +2631,7 @@ export class GridRemoteCardEditor extends LitElement {
         // Boolean toggles where the default is true (delete when on)
         case 'show_icon':
         case 'show_info':
+        case 'hide_diagonal_icons':
           if (v === false) item[key] = false;
           else delete item[key];
           break;
@@ -2693,6 +2702,17 @@ export class GridRemoteCardEditor extends LitElement {
           if (v) btnCfg.hold_repeat = true;
           else delete btnCfg.hold_repeat;
           break;
+
+        case 'icon_click': {
+          // Swipepad-specific: cardinal directions default to true,
+          // diagonals + center default to false. Only persist when the
+          // value diverges from that direction's default so YAML stays
+          // sparse.
+          const isCardinal = (['n', 'e', 's', 'w'] as string[]).includes(key);
+          if (!!v === isCardinal) delete btnCfg.icon_click;
+          else btnCfg.icon_click = !!v;
+          break;
+        }
 
         case 'hold_repeat_interval':
           if (v != null && v !== '') btnCfg.hold_repeat_interval = v;

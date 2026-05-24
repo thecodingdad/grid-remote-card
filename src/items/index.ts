@@ -18,6 +18,7 @@ import './media';
 import './source';
 import './numbers';
 import './label';
+import './swipepad';
 
 import { ButtonItem, renderButtonEditor } from './button';
 import { EntityItem, renderEntityEditor } from './entity';
@@ -28,6 +29,7 @@ import { MediaItem, renderMediaEditor } from './media';
 import { SourceItem, renderSourceEditor } from './source';
 import { NumbersItem, renderNumbersEditor } from './numbers';
 import { LabelItem, renderLabelEditor } from './label';
+import { SwipepadItem, renderSwipepadEditor } from './swipepad';
 import type { GridRemoteCardEditor } from '../editor';
 import type { Item } from '../types';
 import type { TemplateResult } from 'lit';
@@ -51,10 +53,12 @@ export const ITEMS: Record<ItemType, ItemMeta> = {
   source:        { tagName: 'grc-source-item',        cls: SourceItem,        renderEditor: renderSourceEditor },
   numbers:       { tagName: 'grc-numbers-item',       cls: NumbersItem,       renderEditor: renderNumbersEditor },
   label:         { tagName: 'grc-label-item',         cls: LabelItem,         renderEditor: renderLabelEditor },
+  swipepad:      { tagName: 'grc-swipepad-item',      cls: SwipepadItem,      renderEditor: renderSwipepadEditor },
 };
 
 export { ItemBase } from './base';
 export {
   ButtonItem, EntityItem, DpadItem, ColorButtonsItem,
   SliderItem, MediaItem, SourceItem, NumbersItem, LabelItem,
+  SwipepadItem,
 };

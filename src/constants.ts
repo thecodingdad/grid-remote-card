@@ -18,7 +18,16 @@ export const ITEM_SIZES: Record<ItemType, ItemSize> = {
   numbers:       { cols: 1, rows: 1 },
   entity:        { cols: 1, rows: 1 },
   label:         { cols: 2, rows: 1 },
+  swipepad:      { cols: 3, rows: 2 },
 };
+
+/** Compass directions plus a center key for the swipepad sub-button map. */
+export const SWIPEPAD_DIRS = ['n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw', 'center'] as const;
+export type SwipepadDir = typeof SWIPEPAD_DIRS[number];
+
+/** Minimum pointer-delta in pixels before the swipepad recognises a swipe.
+ *  Below this the gesture is treated as a center-tap. */
+export const SWIPEPAD_SWIPE_THRESHOLD = 20;
 
 export const ITEM_TYPES: ItemType[] = Object.keys(ITEM_SIZES) as ItemType[];
 

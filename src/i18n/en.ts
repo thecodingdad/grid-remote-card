@@ -20,6 +20,17 @@ export default {
   "Number pad": "Number pad",
   "Entity button": "Entity button",
   "Label": "Label",
+  "Swipepad": "Swipepad",
+  "Hide cardinal icons until touched": "Hide cardinal icons until touched",
+  "Hide diagonal icons until touched": "Hide diagonal icons until touched",
+  "Tap icon to fire action": "Tap icon to fire action",
+  "Swipe action": "Swipe action",
+  "Swipe & Hold action": "Swipe & Hold action",
+  "Up-right": "Up-right",
+  "Down-right": "Down-right",
+  "Down-left": "Down-left",
+  "Up-left": "Up-left",
+  "Center": "Center",
 
   // D-Pad directions
   "Up": "Up",
