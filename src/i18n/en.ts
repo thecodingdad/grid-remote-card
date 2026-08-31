@@ -63,6 +63,7 @@ export default {
   "Font family": "Font family",
   "Pick a font or type any Google Font name": "Pick a font or type any Google Font name",
   "Pick a system font or type a custom font-family stack": "Pick a system font or type a custom font-family stack",
+  "Plain text or a Jinja template (e.g. {{ states('sensor.x') }})": "Plain text or a Jinja template (e.g. {{ states('sensor.x') }})",
   "Card background color": "Card background color",
   "Button background color": "Button background color",
   "Remote border color": "Remote border color",

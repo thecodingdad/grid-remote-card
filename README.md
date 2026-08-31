@@ -25,6 +25,7 @@ A fully customizable TV/media remote control card with drag-and-drop grid layout
 - Haptic feedback (configurable), only triggered when an action actually fires
 - Fully configurable colors (global, per page, and per item)
 - Every color field accepts a Jinja template (entity-driven dynamic colors that update live)
+- Label text accepts a Jinja template — dynamic captions like now-playing info or sensor values
 - Entity buttons expose separate colors for the active state (icon + background)
 - Fully configurable numpad keys: per-key icon, text, colors, tap/hold action, and show/hide toggle
 - Buttons can show an image (URL) instead of an icon, with optional fill mode that stretches the image across the whole button
@@ -235,13 +236,15 @@ A non-interactive caption for branding or annotating a remote (e.g. device name 
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `text` | string | — | Label text |
+| `text` | string | — | Label text — accepts a Jinja template for live values (e.g. `{{ state_attr('media_player.tv', 'media_title') }}`) |
 | `text_color` | string | — | Text color (CSS) |
 | `font_family` | string | — | Font family — pick one of 10 system fonts (Arial, Helvetica, Verdana, Tahoma, Trebuchet MS, Impact, Times New Roman, Georgia, Courier New, Comic Sans MS) or type any custom `font-family` stack |
 | `font_size` | number | 14 | Font size in pixels (range 6–25) |
 | `multi_line` | boolean | false | Wrap long text instead of clipping it |
 
 In the 3D card style the label automatically renders with a subtle engraved look.
+
+The `text` field is template-aware: type a value containing `{{` (or `{%`) and the editor switches from the plain text box to a Jinja code editor. The rendered result updates live whenever a referenced entity changes, so a label can show now-playing info, the selected sound field, a temperature, etc. Static text is used verbatim — no template subscription is created.
 
 ### Swipepad Options
 

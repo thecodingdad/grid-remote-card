@@ -63,6 +63,7 @@ export default {
   "Font family": "Schriftart",
   "Pick a font or type any Google Font name": "Schriftart wählen oder Google-Font-Namen eintippen",
   "Pick a system font or type a custom font-family stack": "Systemschrift wählen oder eigenen font-family-Stack eintippen",
+  "Plain text or a Jinja template (e.g. {{ states('sensor.x') }})": "Text oder Jinja-Template (z. B. {{ states('sensor.x') }})",
   "Beschriftung": "Beschriftung",
   "Card background color": "Karten-Hintergrundfarbe",
   "Button background color": "Tasten-Hintergrundfarbe",

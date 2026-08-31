@@ -20,6 +20,7 @@ import { getItemSize } from './helpers';
 import { editorStyles } from './styles';
 import { t } from './i18n';
 import { ITEMS } from './items';
+import { isTemplate } from './template-subscriber';
 
 // -- Editor schemas (only card-global ones remain; item-specific schemas
 //    live in the item files under src/items/) ---------------------------------
@@ -1246,7 +1247,7 @@ export class GridRemoteCardEditor extends LitElement {
         <p class="page-colors-hint">
           ${t(this.hass, 'Empty fields fall back to the global color settings.')}
         </p>
-        <ha-form .hass=${this.hass} .data=${data} .schema=${this._adaptColorSchema(schema, data)}
+        <ha-form .hass=${this.hass} .data=${data} .schema=${this._adaptTemplateSchema(schema, data)}
           .computeLabel=${(s: any) => _label(this.hass, s)} .computeHelper=${(s: any) => _helper(this.hass, s)}
           @value-changed=${(e: CustomEvent) => this._onPageColorsChanged(e, page)}
         ></ha-form>
@@ -1458,7 +1459,11 @@ export class GridRemoteCardEditor extends LitElement {
     }
     const size = meta.cls.getSize(item);
     const icon = this._resolveEditorIcon(item);
-    const text = meta.cls.showTextInGrid && item.text ? item.text : '';
+    // Templated text is unresolved in the layout grid — show the type
+    // icon instead of a raw `{{ ... }}` expression.
+    const text = meta.cls.showTextInGrid && item.text && !isTemplate(item.text)
+      ? item.text
+      : '';
     const cls = [
       'grid-editor-item',
       `type-${item.type}`,
@@ -2584,7 +2589,7 @@ export class GridRemoteCardEditor extends LitElement {
    *  collapsible in an item editor — guarantees one ha-form per
    *  collapsible and uniform field spacing. */
   _renderItemForm(data: any, schema: any[], index: number): TemplateResult {
-    const finalSchema = this._adaptColorSchema(schema, data);
+    const finalSchema = this._adaptTemplateSchema(schema, data);
     return html`
       <ha-form .hass=${this.hass} .data=${data} .schema=${finalSchema}
         .computeLabel=${(s: any) => _label(this.hass, s)}
@@ -2596,7 +2601,7 @@ export class GridRemoteCardEditor extends LitElement {
 
   /** Sub-button variant (dpad direction / color-button slot / numpad key). */
   _renderSubBtnForm(data: any, schema: any[], index: number, key: string): TemplateResult {
-    const finalSchema = this._adaptColorSchema(schema, data);
+    const finalSchema = this._adaptTemplateSchema(schema, data);
     return html`
       <ha-form .hass=${this.hass} .data=${data} .schema=${finalSchema}
         .computeLabel=${(s: any) => _label(this.hass, s)}
@@ -2606,20 +2611,22 @@ export class GridRemoteCardEditor extends LitElement {
     `;
   }
 
-  /** Walk a ha-form schema and swap `ui_color` selectors to `template`
+  /** Walk a ha-form schema and swap `ui_color` selectors (and fields
+   *  flagged `templatable`, e.g. the label text) to `template`
    *  selectors when the matching value contains a Jinja expression.
-   *  This keeps the picker for static values and switches to a Jinja
-   *  code editor as soon as the user types a `{{ ... }}` expression. */
-  _adaptColorSchema(schema: any[], data: any): any[] {
+   *  This keeps the picker/text box for static values and switches to a
+   *  Jinja code editor as soon as the user types a `{{ ... }}`
+   *  expression. */
+  _adaptTemplateSchema(schema: any[], data: any): any[] {
     return schema.map((entry) => {
       if (entry?.type === 'grid' && Array.isArray(entry.schema)) {
-        return { ...entry, schema: this._adaptColorSchema(entry.schema, data) };
+        return { ...entry, schema: this._adaptTemplateSchema(entry.schema, data) };
       }
       if (
-        entry?.selector?.ui_color
+        (entry?.selector?.ui_color || entry?.templatable)
         && entry.name
         && typeof data?.[entry.name] === 'string'
-        && /\{\{|\{%|\{#/.test(data[entry.name])
+        && isTemplate(data[entry.name])
       ) {
         return { ...entry, selector: { template: {} } };
       }
@@ -2648,7 +2655,7 @@ export class GridRemoteCardEditor extends LitElement {
 
     return html`
       ${this._renderCollapsible('settings-appearance', t(this.hass, 'Appearance'), true, html`
-        <ha-form .hass=${this.hass} .data=${appearanceData} .schema=${this._adaptColorSchema(SCHEMA_GLOBAL_APPEARANCE, appearanceData)}
+        <ha-form .hass=${this.hass} .data=${appearanceData} .schema=${this._adaptTemplateSchema(SCHEMA_GLOBAL_APPEARANCE, appearanceData)}
           .computeLabel=${(s: any) => _label(this.hass, s)} .computeHelper=${(s: any) => _helper(this.hass, s)}
           @value-changed=${this._onGlobalAppearanceChanged}
         ></ha-form>

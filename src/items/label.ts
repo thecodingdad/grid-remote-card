@@ -88,7 +88,10 @@ export class LabelItem extends ItemBase {
     if (fontFamily) styleParts.push(`font-family:${fontFamily}, ${LABEL_FALLBACK_FONT}`);
     if (fontSize) styleParts.push(`font-size:${fontSize}px`);
     if (multiLine) styleParts.push('white-space:normal', 'text-overflow:clip');
-    return html`<span class="label-text" style="${styleParts.join(';')}">${item.text ?? ''}</span>`;
+    // Text may hold a Jinja expression — resolved live via the shared
+    // template subscriber, passed through untouched when it's static.
+    const text = this.resolveTemplated(item.text);
+    return html`<span class="label-text" style="${styleParts.join(';')}">${text}</span>`;
   }
 }
 
@@ -109,7 +112,14 @@ export function renderLabelEditor(
     multi_line: !!(item as any).multi_line,
   };
   const basisSchema = [
-    { name: 'text', selector: { text: {} }, helper: '' },
+    {
+      name: 'text',
+      selector: { text: {} },
+      // Switches to a Jinja code editor as soon as the value contains
+      // a template expression (see `_adaptTemplateSchema`).
+      templatable: true,
+      helper: 'Plain text or a Jinja template (e.g. {{ states(\'sensor.x\') }})',
+    },
     { name: 'text_color', selector: { ui_color: {} } },
     {
       name: 'font_family',
